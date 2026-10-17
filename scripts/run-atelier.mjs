@@ -157,7 +157,8 @@ export function runAtelier(opts, { root, now = new Date(), spawn = spawnSync, en
     subtype: result?.subtype ?? null,
     numTurns: result?.num_turns ?? null,
     permissionDenials: result?.permission_denials ?? [],
-    report,
+    // Le rapport vient de l'agent : borné pour ne jamais gonfler la branche data.
+    report: JSON.stringify(report ?? null).length <= 8000 ? report : { truncated: true, status: String(report?.status ?? "").slice(0, 20) },
     stderrTail: (proc.stderr ?? "").slice(-4000),
   };
   writeJson(join(out, "factory", "runs", day, `${runId}.json`), log);
