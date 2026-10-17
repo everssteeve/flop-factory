@@ -18,6 +18,7 @@ import { loadConfig } from "./lib/budget.mjs";
 import { loadIdeas, readStates, pickIdea, validateSpec, checkDiscovered } from "./lib/apps.mjs";
 import { copyAccepted, NEVER_PUBLISHED, WORKDIR_PACKAGE } from "./lib/site-files.mjs";
 import { runAtelier } from "./run-atelier.mjs";
+import { zonePrompt } from "./lib/brain-zone.mjs";
 
 export function render(template, vars) {
   return template.replace(/\{\{([A-Z_]+)\}\}/g, (_, k) => {
@@ -87,7 +88,7 @@ export function discoverIfNeeded({ root, states, work, records, run, config }) {
   const prompt = writePrompt(
     root,
     "discovery",
-    render(readFileSync(join(root, "factory", "prompts", "discovery.md"), "utf8"), { KNOWN: known, MAX_SEARCHES: d.maxSearches, MAX_IDEAS: d.maxIdeas }),
+    render(zonePrompt(root, "discovery"), { KNOWN: known, MAX_SEARCHES: d.maxSearches, MAX_IDEAS: d.maxIdeas }),
   );
   const dir = join(work, "_discovery");
   rmSync(dir, { recursive: true, force: true });
@@ -130,12 +131,23 @@ export function runPipeline({ root, stateDir, work, records }, deps = {}) {
   const discovery = discoverIfNeeded({ root, states, work, records, run, config });
   const idea = pickIdea(ideasToday, states, limits.maxAttempts);
   if (!idea) return { stage: "none", reason: `aucune idée à construire${discovery ? ` (découverte : ${discovery})` : ""}` };
+  return buildApp({ root, idea, states, work, records, run, config });
+}
+
+/**
+ * Construit une app : spec → build → revue, chacun dans son dossier. `prompts`
+ * remplace les prompts de la zone d'auto-amélioration (banc d'essai du cerveau) ;
+ * par défaut, ceux en vigueur. `tag` préfixe les dossiers et prompts du banc.
+ */
+export function buildApp({ root, idea, states, work, records, run, config, prompts = {}, tag = "", ateliers = { build: "build", qualite: "qualite" }, models = {} }) {
+  const limits = config.pipeline;
+  const promptText = (name) => prompts[name] ?? zonePrompt(root, name);
   // Une app déjà refusée escalateAfterFailures fois passe au modèle d'escalade
   // pour la spec et le build, même si ses runs s'étaient dits « ok ».
   const attempts = states[idea.slug]?.attempts ?? 0;
-  const model = attempts >= config.models.escalateAfterFailures ? config.models.escalation : undefined;
+  const model = models.build ?? (attempts >= config.models.escalateAfterFailures ? config.models.escalation : undefined);
 
-  const base = join(work, idea.slug);
+  const base = join(work, tag + idea.slug);
   rmSync(base, { recursive: true, force: true });
   mkdirSync(base, { recursive: true });
   const stop = (stage, outcome, reason) => ({ slug: idea.slug, stage, reason: reason ?? `run ${outcome.status}`, runId: outcome?.runId });
@@ -144,8 +156,8 @@ export function runPipeline({ root, stateDir, work, records }, deps = {}) {
   // 1. Spec
   const specPrompt = writePrompt(
     root,
-    `spec-${idea.slug}`,
-    render(readFileSync(join(root, "factory", "prompts", "spec.md"), "utf8"), {
+    `${tag}spec-${idea.slug}`,
+    render(promptText("spec"), {
       SLUG: idea.slug,
       IDEA: idea.idea,
       MAX_FEATURES: limits.maxFeatures,
@@ -153,7 +165,7 @@ export function runPipeline({ root, stateDir, work, records }, deps = {}) {
     }),
   );
   const specDir = join(base, "spec");
-  const s = run({ atelier: "build", prompt: specPrompt, workdir: specDir, records, model, maxTurns: String(limits.specMaxTurns) });
+  const s = run({ atelier: ateliers.build, prompt: specPrompt, workdir: specDir, records, model, maxTurns: String(limits.specMaxTurns) });
   if (halted(s)) return { slug: idea.slug, stage: s.status, reason: s.status };
   if (s.status !== "ok") return stop("spec", s);
   const spec = readJson(join(specDir, "spec.json"));
@@ -167,8 +179,8 @@ export function runPipeline({ root, stateDir, work, records }, deps = {}) {
   mkdirSync(appDir, { recursive: true });
   writeFileSync(join(appDir, "spec.json"), specText + "\n");
   writeFileSync(join(appDir, "package.json"), WORKDIR_PACKAGE);
-  const buildPrompt = writePrompt(root, `build-${idea.slug}`, render(readFileSync(join(root, "factory", "prompts", "build.md"), "utf8"), { SPEC: specText, PREVIOUS: previousFeedback(states[idea.slug]) }));
-  const b = run({ atelier: "build", prompt: buildPrompt, workdir: appDir, records, model, maxTurns: String(limits.buildMaxTurns) });
+  const buildPrompt = writePrompt(root, `${tag}build-${idea.slug}`, render(promptText("build"), { SPEC: specText, PREVIOUS: previousFeedback(states[idea.slug]) }));
+  const b = run({ atelier: ateliers.build, prompt: buildPrompt, workdir: appDir, records, model, maxTurns: String(limits.buildMaxTurns) });
   if (halted(b)) return { slug: idea.slug, stage: b.status, reason: b.status };
   if (b.status !== "ok") return stop("build", b);
 
@@ -178,7 +190,7 @@ export function runPipeline({ root, stateDir, work, records }, deps = {}) {
   if (copy.problems.length) return stop("build", b, copy.problems.join(" ; "));
   writeFileSync(join(reviewDir, "spec.json"), specText + "\n");
   writeFileSync(join(reviewDir, "package.json"), WORKDIR_PACKAGE);
-  const r = run({ atelier: "qualite", prompt: "factory/prompts/review.md", workdir: reviewDir, records, maxTurns: String(limits.reviewMaxTurns) });
+  const r = run({ atelier: ateliers.qualite, prompt: "factory/prompts/review.md", workdir: reviewDir, records, model: models.qualite, maxTurns: String(limits.reviewMaxTurns) });
   // Revue sans budget ou arrêtée : pas de verdict aujourd'hui, aucune tentative comptée.
   if (halted(r)) return { slug: idea.slug, stage: r.status, reason: `revue : ${r.status}` };
   // Revue ratée : l'app part quand même à la porte, avec une revue bloquante.

@@ -45,6 +45,9 @@ jobs:
       stage: ${{ steps.run.outputs.stage }}
       reason: ${{ steps.run.outputs.reason }}
       leak: ${{ steps.leak.outputs.leak }}
+      brain: ${{ steps.brainleak.outputs.leak == 'none' && steps.brain.outputs.brain || (steps.brain.outputs.brain == 'proposed' && 'failed' || steps.brain.outputs.brain) }}
+      brain_reason: ${{ steps.brainleak.outputs.leak == 'found' && 'fuite de la clé dans la proposition' || steps.brain.outputs.brain_reason }}
+      bench: ${{ steps.brainleak.outputs.leak == 'none' && steps.brain.outputs.bench || 'no' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -57,7 +60,7 @@ jobs:
       - name: Charger les données
         run: |
           if git fetch --depth 1 origin data 2>/dev/null; then
-            for p in factory/ledger factory/runs factory/apps factory/ideas-discovered.json; do
+            for p in factory/ledger factory/runs factory/apps factory/ideas-discovered.json factory/brain; do
               git checkout FETCH_HEAD -- "$p" 2>/dev/null || true
             done
           fi
@@ -98,11 +101,12 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: node scripts/pipeline.mjs . "$WORK/apps" "$RECORDS"
 
-      - name: Arrêter les processus laissés par l'agent
+      - name: Arrêter les processus laissés par la chaîne
         if: always() && steps.stop.outputs.stopped != 'true'
-        run: pkill -f -- "$WORK" || true
+        run: pkill -f -- "$WORK/apps" || true
 
-      - name: Recherche de fuite de la clé
+      # L'app du jour sort du job avant le cerveau : un essai long ou planté ne la retarde jamais.
+      - name: Recherche de fuite de la clé — app
         id: leak
         if: steps.run.outputs.stage == 'done'
         env:
@@ -112,12 +116,50 @@ jobs:
           if node scripts/leak-check.mjs "$WORK/apps/$SLUG"; then echo "leak=none" >> "$GITHUB_OUTPUT"; else echo "leak=found" >> "$GITHUB_OUTPUT"; exit 1; fi
 
       - uses: actions/upload-artifact@v4
-        if: steps.leak.outputs.leak == 'none'
+        if: steps.leak.outputs.leak == 'none' && steps.run.outputs.stage == 'done'
         with:
           name: app
           path: ${{ runner.temp }}/ff-work/apps/${{ steps.run.outputs.slug }}/out
           if-no-files-found: error
           retention-days: 7
+
+      # Cerveau : propose au plus une amélioration des prompts par jour et l'essaie
+      # sur l'app de référence. L'adoption se décide dans le job records.
+      - name: Cerveau — proposition et essai
+        id: brain
+        if: always() && steps.stop.outputs.stopped != 'true'
+        timeout-minutes: 60
+        continue-on-error: true
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: node scripts/brain.mjs . "$WORK" "$RECORDS"
+
+      - name: Arrêter les processus laissés par le cerveau
+        if: always() && steps.stop.outputs.stopped != 'true'
+        run: pkill -f -- "$WORK" || true
+
+      - name: Recherche de fuite de la clé — cerveau
+        id: brainleak
+        if: always() && steps.brain.outputs.brain == 'proposed'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if node scripts/leak-check.mjs "$WORK/brain/out"; then echo "leak=none" >> "$GITHUB_OUTPUT"; else echo "leak=found" >> "$GITHUB_OUTPUT"; fi
+
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.brainleak.outputs.leak == 'none'
+        with:
+          name: brain
+          path: ${{ runner.temp }}/ff-work/brain/out
+          if-no-files-found: error
+          retention-days: 30
+
+      # La branche data est publique : journaux et idées sont expurgés avant de sortir.
+      - name: Expurger les enregistrements
+        if: always() && steps.stop.outputs.stopped != 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: node scripts/redact-leaks.mjs "$RECORDS" || true
 
       - uses: actions/upload-artifact@v4
         if: always() && steps.stop.outputs.stopped != 'true'
@@ -171,14 +213,60 @@ jobs:
           path: ${{ runner.temp }}/verdict
           if-no-files-found: error
           retention-days: 7
+  # Porte de l'app d'essai du cerveau, dans son propre job : un problème ici
+  # n'a aucun effet sur le verdict de l'app du jour.
+  gate-bench:
+    needs: agent
+    if: needs.agent.outputs.bench == 'yes'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Sandbox et navigateur
+        run: |
+          # Le code de l'agent va tourner ici (en sandbox) : on retire le démon Docker,
+          # dont le socket donnerait la main sur la machine.
+          sudo systemctl stop docker.socket docker.service containerd.service 2>/dev/null || true
+          sudo rm -f /var/run/docker.sock
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq bubblewrap
+          if [ -f /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          fi
+          npm install --no-save --ignore-scripts "playwright@${PLAYWRIGHT_VERSION}"
+          npx playwright install --with-deps chromium
+      # Les idées découvertes vivent sur data : la porte en a besoin pour reconnaître l'app.
+      - name: Charger les idées découvertes
+        run: |
+          if git fetch --depth 1 origin data 2>/dev/null; then
+            git checkout FETCH_HEAD -- factory/ideas-discovered.json 2>/dev/null || true
+          fi
+      - uses: actions/download-artifact@v4
+        with:
+          name: brain
+          path: ${{ runner.temp }}/brain
+      - name: Porte qualité — app d'essai du cerveau
+        run: node scripts/quality-gate.mjs "$RUNNER_TEMP/brain/bench" "$RUNNER_TEMP/verdict-bench"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: verdict-bench
+          path: ${{ runner.temp }}/verdict-bench
+          if-no-files-found: error
+          retention-days: 7
 
   records:
-    needs: [agent, gate]
+    needs: [agent, gate, gate-bench]
     if: always() && needs.agent.result != 'skipped'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
       contents: write
+      issues: write
     outputs:
       decision: ${{ steps.arbiter.outputs.decision }}
       killed: ${{ steps.verdicts.outputs.killed }}
@@ -195,11 +283,23 @@ jobs:
           name: records
           path: ${{ runner.temp }}/records
       - uses: actions/download-artifact@v4
-        if: needs.gate.result == 'success'
+        if: needs.gate.result == 'success' && needs.agent.outputs.stage == 'done'
         continue-on-error: true
         with:
           name: verdict
           path: ${{ runner.temp }}/verdict
+      - uses: actions/download-artifact@v4
+        if: needs.agent.outputs.brain == 'proposed'
+        continue-on-error: true
+        with:
+          name: brain
+          path: ${{ runner.temp }}/brain
+      - uses: actions/download-artifact@v4
+        if: needs.gate-bench.result == 'success'
+        continue-on-error: true
+        with:
+          name: verdict-bench
+          path: ${{ runner.temp }}/verdict-bench
       # main est protégée (PR + revue) : les données de l'usine vont sur la
       # branche data, que le bot peut écrire sans toucher au code ni aux garde-fous.
       - name: Ouvrir la branche data
@@ -248,6 +348,15 @@ jobs:
           # la mesure des apps qui n'avaient pas encore le compteur commence.
           FF_DEPLOYING: ${{ steps.arbiter.outputs.decision == 'go' || inputs.redeploy == true }}
         run: node scripts/verdict-j30.mjs "$DATA"
+      # Cerveau : évaluation de la version en cours (retrait si les résultats baissent),
+      # puis adoption éventuelle de la proposition du jour.
+      - name: Cerveau — évaluation et adoption
+        if: always() && steps.ledger.outcome == 'success'
+        continue-on-error: true
+        env:
+          PROPOSED: ${{ needs.agent.outputs.brain == 'proposed' && 'yes' || (needs.agent.outputs.brain == 'failed' && 'failed' || 'no') }}
+          REASON: ${{ needs.agent.outputs.brain_reason }}
+        run: node scripts/brain-records.mjs "$DATA" --proposed "$PROPOSED" --reason "$REASON" --brain "$RUNNER_TEMP/brain" --verdict "$RUNNER_TEMP/verdict-bench" --event "$RUNNER_TEMP/brain-event.md"
       # Toujours commiter le ledger validé, même si l'arbitre a échoué :
       # une dépense non enregistrée serait dépensée deux fois.
       - name: Commiter sur data
@@ -265,6 +374,16 @@ jobs:
           if git diff --cached --quiet; then echo "rien à commiter"; exit 0; fi
           git commit -m "usine: données du $(TZ=Europe/Paris date +%F)"
           git push origin HEAD:data
+
+      # Toute adoption ou tout retrait de version devient une issue : relecture humaine possible après coup.
+      - name: Signaler l'événement du cerveau
+        if: always() && hashFiles(format('{0}/brain-event.md', runner.temp)) != ''
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TITLE="Cerveau - $(head -1 "$RUNNER_TEMP/brain-event.md" | sed 's/^## //')"
+          gh issue create --repo "$GITHUB_REPOSITORY" --title "$TITLE" --body-file "$RUNNER_TEMP/brain-event.md"
 
   deploy:
     needs: [agent, records]

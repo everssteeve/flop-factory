@@ -73,5 +73,16 @@
     "maxSearches": 8,
     "maxTurns": 20,
     "maxDiscovered": 200
+  },
+  "brain": {
+    "$comment": "Auto-amélioration des prompts de production (zone spec, build, discovery). Une proposition par jour au plus, une seule version en évaluation à la fois.",
+    "enabled": true,
+    "minFailures": 2,
+    "benchSlug": "checklist-valise",
+    "maxChangedLines": 40,
+    "evalWindow": 8,
+    "tolerance": 0.15,
+    "baselineWindow": 10,
+    "maxTurns": 25
   }
 }
