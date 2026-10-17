@@ -8,7 +8,7 @@ Phase actuelle : **Socle** (semaines 1 et 2). Porte de sortie : une app livrée 
 
 Chaque matin, le workflow [Usine](.github/workflows/usine.yml) enchaîne quatre jobs isolés :
 
-1. **agent** — s'arrête si un fichier `STOP` est présent. Sinon il construit le plugin des runs autonomes, vérifie avec un vrai run que les garde-fous sont chargés (`printenv` et `git push` doivent être refusés), puis lance l'atelier Build avec Haiku, borné par l'enveloppe du jour. Il ne reçoit que la clé API et aucun jeton git. Il produit deux artefacts : le site, non fiable, et les enregistrements de coût.
+1. **agent** — s'arrête si un fichier `STOP` est présent. Sinon il construit le plugin des runs autonomes, vérifie les garde-fous : le hook livré est rejoué sur des cas connus, puis une courte session réelle doit démarrer en sandbox avec le plugin chargé, puis lance l'atelier Build avec Haiku, borné par l'enveloppe du jour. Il ne reçoit que la clé API et aucun jeton git. Il produit deux artefacts : le site, non fiable, et les enregistrements de coût.
 2. **gate** — repart d'un checkout neuf en lecture seule et valide le site sans croire le rapport de l'agent.
 3. **deploy** — publie sur GitHub Pages ce que la porte a validé, puis contrôle la page en ligne.
 4. **records** — seul job qui écrit dans le dépôt. Il valide puis commite le ledger et les journaux sur la branche `data`.
