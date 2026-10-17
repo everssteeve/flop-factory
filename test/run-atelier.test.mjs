@@ -21,13 +21,16 @@ function tempRoot() {
   return root;
 }
 
-/** Faux `claude` : écrit éventuellement report.json et renvoie un JSON donné. */
-function fakeClaude({ stdout, status = 0, report }) {
+const INIT = { type: "system", subtype: "init", plugins: [{ name: "flop-factory-harness", path: "/p" }] };
+
+/** Faux `claude` : écrit éventuellement report.json et renvoie un flux stream-json. */
+function fakeClaude({ stdout, status = 0, report, init = INIT }) {
   const calls = [];
   const spawn = (cmd, args, options) => {
     calls.push({ cmd, args, options });
     if (report) writeFileSync(join(options.cwd, "report.json"), JSON.stringify(report));
-    return { status, stdout: typeof stdout === "string" ? stdout : JSON.stringify(stdout), stderr: "" };
+    const lines = typeof stdout === "string" ? stdout : [init && JSON.stringify(init), JSON.stringify({ type: "result", ...stdout })].filter(Boolean).join("\n");
+    return { status, stdout: lines, stderr: "" };
   };
   return { spawn, calls };
 }
@@ -116,8 +119,9 @@ test("la ligne de commande borne toujours le run", () => {
   for (const flag of ["--bare", "--max-budget-usd", "--max-turns", "--permission-prompts", "--plugin-dir", "--no-session-persistence", "--settings", "--tools"]) {
     assert.ok(args.includes(flag), flag);
   }
-  assert.equal(args[args.indexOf("--permission-mode") + 1], "dontAsk");
+  assert.equal(args[args.indexOf("--output-format") + 1], "stream-json");
   assert.ok(!args.includes("--dangerously-skip-permissions"));
+  assert.ok(!args.includes("--permission-mode"));
   assert.throws(() => claudeArgs({ prompt: "x", model: "haiku", capUsd: 0, maxTurns: 10, settingsFile: "/s" }), /plafond/);
   assert.throws(() => claudeArgs({ prompt: "x", model: "haiku", capUsd: 1, maxTurns: 0, settingsFile: "/s" }), /tours/);
   assert.throws(() => claudeArgs({ prompt: "x", model: "haiku", capUsd: 1, maxTurns: 5 }), /sandbox/);
@@ -152,4 +156,15 @@ test("un run tué par le délai compte le plafond entier", () => {
   const out = runAtelier(OPTS, { root, now: NOW, spawn, env: {} });
   assert.equal(out.status, "failed");
   assert.ok(readLedger(root, DAY).entries[0].usd > 0);
+});
+
+test("un run sans le plugin des garde-fous n'est jamais un succès", () => {
+  for (const init of [null, { type: "system", subtype: "init", plugins: [] }, { ...INIT, plugin_errors: [{ plugin: "x", message: "boom" }] }]) {
+    const root = tempRoot();
+    const fake = fakeClaude({ stdout: { total_cost_usd: 0.01 }, report: { status: "ok" }, init });
+    const out = runAtelier(OPTS, { root, now: NOW, spawn: fake.spawn, env: {} });
+    assert.equal(out.status, "failed");
+    assert.equal(out.guarded, false);
+    assert.equal(readLedger(root, DAY).entries[0].usd, 0.01);
+  }
 });

@@ -17,7 +17,7 @@ import { join, dirname, resolve, isAbsolute } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
 import { loadConfig, dayKey, readLedger, runCap, record, costFromResult } from "./lib/budget.mjs";
-import { claudeArgs, claudeEnv } from "./lib/claude-args.mjs";
+import { claudeArgs, claudeEnv, parseOutput, pluginLoaded } from "./lib/claude-args.mjs";
 
 /** Durée maximale d'un run, sous le timeout du job pour toujours noter son coût. */
 export const RUN_TIMEOUT_MS = 35 * 60 * 1000;
@@ -111,12 +111,9 @@ export function runAtelier(opts, { root, now = new Date(), spawn = spawnSync, en
     killSignal: "SIGINT",
   });
 
-  let result = null;
-  try {
-    result = JSON.parse(proc.stdout);
-  } catch {
-    result = null;
-  }
+  const { init, result } = parseOutput(proc.stdout);
+  // Sans le plugin des garde-fous, un run n'est jamais considéré comme réussi.
+  const guarded = pluginLoaded(init);
 
   // Coût inconnu (plantage, run tué) = on compte le plafond entier.
   let usd;
@@ -133,7 +130,7 @@ export function runAtelier(opts, { root, now = new Date(), spawn = spawnSync, en
     report = null;
   }
 
-  const ok = proc.status === 0 && !proc.error && result && !result.is_error && report?.status === "ok";
+  const ok = guarded && proc.status === 0 && !proc.error && result && !result.is_error && report?.status === "ok";
   const status = ok ? "ok" : "failed";
 
   // Le ledger écrit repart de l'état lu avant le run : l'agent n'a aucune prise dessus.
@@ -153,6 +150,9 @@ export function runAtelier(opts, { root, now = new Date(), spawn = spawnSync, en
     usd,
     status,
     exitCode: proc.status,
+    guarded,
+    plugins: (init?.plugins ?? []).map((p) => p?.name),
+    pluginErrors: init?.plugin_errors ?? [],
     timedOut: proc.error?.code === "ETIMEDOUT",
     subtype: result?.subtype ?? null,
     numTurns: result?.num_turns ?? null,
@@ -162,7 +162,7 @@ export function runAtelier(opts, { root, now = new Date(), spawn = spawnSync, en
   };
   writeJson(join(out, "factory", "runs", day, `${runId}.json`), log);
 
-  return { status, runId, usd, model, denials: log.permissionDenials };
+  return { status, runId, usd, model, guarded, denials: log.permissionDenials };
 }
 
 const isMain = import.meta.url === `file://${process.argv[1]}`;

@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { validateLedger, mergeRecords } from "../scripts/merge-records.mjs";
 import { findLeaks } from "../scripts/leak-check.mjs";
-import { guardConfirmed } from "../scripts/guard-smoke.mjs";
+import { checkHook, HOOK_CASES } from "../scripts/guard-smoke.mjs";
 import { loadConfig } from "../scripts/lib/budget.mjs";
 
 const repo = join(import.meta.dirname, "..");
@@ -57,10 +57,11 @@ test("la clé est retrouvée en clair et encodée", () => {
   assert.equal(findLeaks(make(`"${key.slice(0, 20)}" + "${key.slice(20)}"`), key).length, 1);
 });
 
-test("guard-smoke exige les deux refus attendus", () => {
-  const d = (command) => ({ tool_name: "Bash", tool_input: { command } });
-  assert.equal(guardConfirmed([d("printenv"), d("git push origin main")]), true);
-  assert.equal(guardConfirmed([d("printenv"), d("printenv")]), false);
-  assert.equal(guardConfirmed([]), false);
-  assert.equal(guardConfirmed(undefined), false);
+test("guard-smoke valide le hook livré et détecte un hook défaillant", () => {
+  const dist = mkdtempSync(join(tmpdir(), "ff-dist-"));
+  cpSync(join(repo, "harness", "overlay", "hooks", "ci-guard.mjs"), join(dist, "ci-guard.mjs"));
+  cpSync(join(repo, "harness", "upstream", "hooks", "rules.mjs"), join(dist, "rules.mjs"));
+  assert.deepEqual(checkHook(join(dist, "ci-guard.mjs")), []);
+  writeFileSync(join(dist, "laxiste.mjs"), "process.exit(0)\n");
+  assert.ok(checkHook(join(dist, "laxiste.mjs")).length >= HOOK_CASES.filter((c) => c.expect === "deny").length);
 });
