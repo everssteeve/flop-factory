@@ -41,6 +41,19 @@ function readJson(p) {
   }
 }
 
+/**
+ * Retours des passages précédents d'une app, injectés dans le prompt de build
+ * pour qu'une nouvelle tentative corrige ce qui a été refusé. Ce sont des
+ * textes de l'usine (porte, arbitre) et de la revue : bornés, présentés comme
+ * des constats à corriger.
+ */
+export function previousFeedback(state) {
+  const refused = (state?.history ?? []).filter((h) => h.decision === "retry").slice(-2);
+  if (!refused.length) return "";
+  const lines = refused.flatMap((h) => h.reasons.map((r) => `- ${String(r).replace(/\s+/g, " ").slice(0, 300)}`));
+  return `Cette app a déjà été refusée. Motifs relevés par la porte qualité et la revue, à corriger en priorité :\n\n${lines.slice(0, 12).join("\n")}\n\nUn critère n'est vérifié que si \`test.mjs\` exécute réellement le code concerné (appel de fonction, simulation minimale du DOM si besoin) ; chercher une chaîne dans le source ne compte pas.\n\n`;
+}
+
 /** Ramène une revue à sa forme stricte ; une revue absente ou douteuse bloque. */
 export function normalizeReview(raw) {
   if (!raw || typeof raw !== "object") return { score: 0, blocking: ["revue absente ou illisible"], notes: [] };
@@ -95,7 +108,7 @@ export function runPipeline({ root, stateDir, work, records }, deps = {}) {
   mkdirSync(appDir, { recursive: true });
   writeFileSync(join(appDir, "spec.json"), specText + "\n");
   writeFileSync(join(appDir, "package.json"), WORKDIR_PACKAGE);
-  const buildPrompt = writePrompt(root, `build-${idea.slug}`, render(readFileSync(join(root, "factory", "prompts", "build.md"), "utf8"), { SPEC: specText }));
+  const buildPrompt = writePrompt(root, `build-${idea.slug}`, render(readFileSync(join(root, "factory", "prompts", "build.md"), "utf8"), { SPEC: specText, PREVIOUS: previousFeedback(states[idea.slug]) }));
   const b = run({ atelier: "build", prompt: buildPrompt, workdir: appDir, records, model, maxTurns: String(limits.buildMaxTurns) });
   if (halted(b)) return { slug: idea.slug, stage: b.status, reason: b.status };
   if (b.status !== "ok") return stop("build", b);
