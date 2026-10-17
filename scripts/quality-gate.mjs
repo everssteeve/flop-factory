@@ -60,6 +60,9 @@ export function checkSite(dir, files) {
     const text = readFileSync(join(dir, f), "utf8");
     if (f.endsWith(".html") && EXTERNAL_TAG.test(text)) problems.push(`ressource externe dans ${f}`);
     if (f.endsWith(".css") && EXTERNAL_CSS.test(text)) problems.push(`ressource externe dans ${f}`);
+    // test.mjs n'est jamais publié et tourne sans réseau : il peut nommer ces API
+    // pour vérifier leur absence. Le code servi aux visiteurs, lui, ne le peut pas.
+    if (f === "test.mjs") continue;
     if (/document\.cookie/.test(text)) problems.push(`cookie dans ${f}`);
     if (/\b(WebSocket|RTCPeerConnection|sendBeacon|EventSource|importScripts)\b/.test(text)) problems.push(`API réseau interdite dans ${f}`);
   }
