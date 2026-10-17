@@ -48,6 +48,9 @@ export function claudeArgs({ prompt, model, capUsd, maxTurns, pluginDir, rulesFi
     "--append-system-prompt-file",
     rulesFile,
     "--no-session-persistence",
+    // Aucun serveur MCP : celui du harness amont (context7, distant) donnerait aux
+    // agents un canal réseau que la sandbox ne voit pas.
+    "--strict-mcp-config",
   ];
 }
 
