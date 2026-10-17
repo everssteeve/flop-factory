@@ -42,6 +42,13 @@ jobs:
         with:
           node-version: 22
 
+      # Le ledger vit sur la branche data : on y lit les dépenses du jour.
+      - name: Charger le ledger
+        run: |
+          if git fetch --depth 1 origin data 2>/dev/null; then
+            git checkout FETCH_HEAD -- factory/ledger factory/runs 2>/dev/null || true
+          fi
+
       - name: Arrêt d'urgence
         id: stop
         run: |
@@ -182,14 +189,32 @@ jobs:
         with:
           name: records
           path: ${{ runner.temp }}/records
+      # main est protégée (PR + revue) : les données de l'usine vont sur la
+      # branche data, que le bot peut écrire sans toucher au code ni aux garde-fous.
+      - name: Ouvrir la branche data
+        run: |
+          DATA="$RUNNER_TEMP/data"
+          if git fetch origin data 2>/dev/null; then
+            git worktree add -B data "$DATA" FETCH_HEAD
+            rm -rf factory/ledger factory/runs
+            mkdir -p factory/ledger factory/runs
+            cp -a "$DATA/factory/ledger/." factory/ledger/ 2>/dev/null || true
+            cp -a "$DATA/factory/runs/." factory/runs/ 2>/dev/null || true
+          else
+            git worktree add --orphan -b data "$DATA"
+          fi
+          echo "DATA=$DATA" >> "$GITHUB_ENV"
       - name: Valider et fusionner
         run: node scripts/merge-records.mjs "$RUNNER_TEMP/records"
-      - name: Commiter
+      - name: Commiter sur data
         run: |
+          mkdir -p "$DATA/factory"
+          rm -rf "$DATA/factory/ledger" "$DATA/factory/runs"
+          cp -a factory/ledger factory/runs "$DATA/factory/"
+          cd "$DATA"
           git config user.name "flop-factory-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add factory/ledger factory/runs
           if git diff --cached --quiet; then echo "rien à commiter"; exit 0; fi
           git commit -m "usine: ledger et journaux du $(TZ=Europe/Paris date +%F)"
-          git pull --rebase origin main
-          git push origin HEAD:main
+          git push origin HEAD:data

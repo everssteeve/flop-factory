@@ -11,7 +11,7 @@ Chaque matin, le workflow [Usine](.github/workflows/usine.yml) enchaîne quatre 
 1. **agent** — s'arrête si un fichier `STOP` est présent. Sinon il construit le plugin des runs autonomes, vérifie avec un vrai run que les garde-fous sont chargés (`printenv` et `git push` doivent être refusés), puis lance l'atelier Build avec Haiku, borné par l'enveloppe du jour. Il ne reçoit que la clé API et aucun jeton git. Il produit deux artefacts : le site, non fiable, et les enregistrements de coût.
 2. **gate** — repart d'un checkout neuf en lecture seule et valide le site sans croire le rapport de l'agent.
 3. **deploy** — publie sur GitHub Pages ce que la porte a validé, puis contrôle la page en ligne.
-4. **records** — seul job qui écrit dans le dépôt. Il valide puis commite le ledger (`factory/ledger/`) et les journaux (`factory/runs/`).
+4. **records** — seul job qui écrit dans le dépôt. Il valide puis commite le ledger et les journaux sur la branche `data`.
 
 ## Ce qui protège l'usine
 
@@ -32,7 +32,7 @@ Risque résiduel assumé : le processus Claude Code détient la clé API pour ap
 1. Dans la Console Anthropic, créer une clé API dans un workspace dédié et lui poser une **limite de dépense mensuelle** (environ 175 $, soit 5 €/jour sur 30 jours).
 2. Dans ce repo : Settings > Secrets and variables > Actions > `ANTHROPIC_API_KEY`.
 3. Settings > Pages > Source : **GitHub Actions**.
-4. Settings > Rules : un ruleset sur `main` qui exige une PR, avec GitHub Actions en contournement autorisé (le job records pousse le ledger). Ainsi, le futur cerveau ne pourra pas affaiblir ses garde-fous sans revue.
+4. Settings > Rules : le ruleset « Protection de main » exige une PR, une approbation et la CI verte. Aucun workflow ne peut le contourner, pas même le futur cerveau. Le propriétaire peut fusionner ses propres PR sans approbation, mais jamais pousser directement. Le ledger et les journaux vivent sur la branche `data`, seule branche que le bot écrit.
 5. Actions > Usine > Run workflow pour un premier passage.
 
 ## Développer
