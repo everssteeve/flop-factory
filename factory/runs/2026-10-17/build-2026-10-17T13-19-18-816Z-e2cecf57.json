@@ -1,0 +1,33 @@
+{
+  "runId": "build-2026-10-17T13-19-18-816Z-e2cecf57",
+  "atelier": "build",
+  "prompt": "dist/prompts/build-convertisseur-cuisine.md",
+  "model": "haiku",
+  "capUsd": 1.2955,
+  "remainingBeforeUsd": 2.5911,
+  "usd": 0.01588131,
+  "status": "failed",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 8,
+  "permissionDenials": [],
+  "report": {
+    "status": "failed",
+    "summary": "Application Convertisseur Cuisine écrite : index.html, style.css, app.js (fonctions de calcul exportées, branchement DOM conditionné à typeof document) et test.mjs (AC-1 à AC-8). Dans une copie temporaire hors du dossier app (avec package.json {\"type\":\"module\"}), node test.mjs affiche ok AC-1 à ok AC-8 et sort avec le code 0. Dans le dossier officiel, node test.mjs échoue : le package.json existant est vide (0 octet), donc Node lève ERR_INVALID_PACKAGE_CONFIG au chargement de app.js. Ce fichier est en lecture seule pour l'agent (écriture refusée : Read-only file system), je ne l'ai donc pas modifié. Aucun paquet installé, rien poussé ni déployé, spec.json intact, pas de pied de page légal.",
+    "blockers": [
+      "package.json du dossier app/ est vide (0 octet) et non modifiable par l'agent : Node ne peut pas importer app.js (ERR_INVALID_PACKAGE_CONFIG). Correction attendue : remplacer par {\"name\": \"convertisseur-cuisine\", \"private\": true, \"type\": \"module\"} puis relancer node test.mjs.",
+      "Mise en page (AC-6) vérifiée seulement de façon statique (viewport, pas de largeur fixe > 360 px, cibles de 44 px, libellés associés) : aucun navigateur disponible pour mesurer le débordement à 360/375/1280 px.",
+      "Absence d'erreur console au chargement non vérifiée dans un navigateur réel ; le code ne touche au DOM que si document est défini et n'utilise ni innerHTML ni attribut style en ligne."
+    ]
+  },
+  "stderrTail": ""
+}

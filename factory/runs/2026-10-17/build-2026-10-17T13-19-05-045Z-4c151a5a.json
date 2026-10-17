@@ -1,0 +1,29 @@
+{
+  "runId": "build-2026-10-17T13-19-05-045Z-4c151a5a",
+  "atelier": "build",
+  "prompt": "dist/prompts/spec-convertisseur-cuisine.md",
+  "model": "haiku",
+  "capUsd": 1.2965,
+  "remainingBeforeUsd": 2.5929,
+  "usd": 0.001879975,
+  "status": "ok",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 2,
+  "permissionDenials": [],
+  "report": {
+    "status": "ok",
+    "summary": "Spécification de Convertisseur Cuisine écrite dans spec.json : conversions de volume, masse et température, adaptation des quantités au nombre de personnes, 8 critères d'acceptation testables. Hypothèse retenue : 1 tasse = 240 ml, 1 cuillère à soupe = 15 ml, 1 once liquide = 29,57 ml (non utilisée dans les critères). Pas de conversion volume vers masse, car elle dépend des ingrédients.",
+    "blockers": []
+  },
+  "stderrTail": ""
+}

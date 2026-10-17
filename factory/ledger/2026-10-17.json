@@ -48,6 +48,30 @@
       "usd": 0.01281659,
       "status": "ok",
       "at": "2026-10-17T13:08:43.866Z"
+    },
+    {
+      "runId": "qualite-2026-10-17T13-19-00-833Z-ce7d1453",
+      "atelier": "qualite",
+      "model": "haiku",
+      "usd": 0.0005521,
+      "status": "ok",
+      "at": "2026-10-17T13:19:00.833Z"
+    },
+    {
+      "runId": "build-2026-10-17T13-19-05-045Z-4c151a5a",
+      "atelier": "build",
+      "model": "haiku",
+      "usd": 0.001879975,
+      "status": "ok",
+      "at": "2026-10-17T13:19:05.045Z"
+    },
+    {
+      "runId": "build-2026-10-17T13-19-18-816Z-e2cecf57",
+      "atelier": "build",
+      "model": "haiku",
+      "usd": 0.01588131,
+      "status": "failed",
+      "at": "2026-10-17T13:19:18.816Z"
     }
   ]
 }
