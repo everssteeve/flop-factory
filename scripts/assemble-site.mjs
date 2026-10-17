@@ -45,8 +45,14 @@ function page(title, body) {
 
 /** Méta description (pitch de la spec) ajoutée aux pages d'app, pour les moteurs de recherche et les partages. */
 export function injectDescription(html, text) {
-  if (/<meta[^>]+name=["']description["']/i.test(html)) return html;
-  return html.replace(/<\/title>/i, () => `</title><meta name="description" content="${e(text)}">`);
+  const masked = html.replace(/<!--[\s\S]*?-->/g, (m) => " ".repeat(m.length));
+  const headEnd = masked.search(/<\/head>/i);
+  const head = headEnd < 0 ? masked : masked.slice(0, headEnd);
+  if (/<meta[^>]+name=["']description["']/i.test(head)) return html;
+  const t = head.search(/<\/title>/i);
+  if (t < 0) return html;
+  const at = t + "</title>".length;
+  return html.slice(0, at) + `<meta name="description" content="${e(text)}">` + html.slice(at);
 }
 
 export function assemble(root, data, out, { env = process.env } = {}) {
@@ -90,7 +96,7 @@ export function assemble(root, data, out, { env = process.env } = {}) {
 <h2>Fonctionnement</h2><p>Les apps de ce site sont conçues, codées, testées et publiées automatiquement par des modèles d'IA, sous des contrôles automatiques. Elles sont fournies telles quelles, sans garantie.</p>
 <h2>Données personnelles</h2><p>Les apps ne déposent aucun cookie et n'envoient à aucun serveur ce que vous saisissez : vos données restent dans votre navigateur. L'hébergeur peut journaliser les accès techniques (adresse IP) pour la sécurité du service.</p>${
         origin
-          ? `<h2>Mesure d'audience</h2><p>Pour savoir quelles apps sont utilisées (et retirer les autres), chaque app signale de façon anonyme son ouverture puis sa première utilisation au service GoatCounter. Ce signal ne contient que le nom de l'app : ni cookie, ni identifiant, ni contenu saisi. Il n'est pas envoyé si votre navigateur demande à ne pas être suivi (Do Not Track ou Global Privacy Control).</p>`
+          ? `<h2>Mesure d'audience</h2><p>Pour savoir quelles apps sont utilisées (et retirer les autres), chaque app signale son ouverture puis sa première utilisation au service de mesure d'audience GoatCounter (goatcounter.com, exploité par Martin Tournoij en Irlande, serveurs dans l'Union européenne). Le signal indique le nom de l'app, jamais ce que vous saisissez, et ne dépose aucun cookie. Comme pour toute requête web, GoatCounter reçoit techniquement votre adresse IP et le type de navigateur ; selon sa <a href="https://www.goatcounter.com/help/privacy">politique de confidentialité</a>, il ne conserve ni l'adresse IP ni d'identifiant, et n'en tire que des statistiques agrégées (pays, navigateur, nombre de visites). Aucun signal n'est envoyé si votre navigateur demande à ne pas être suivi (Do Not Track ou Global Privacy Control). Finalité : décider du maintien ou du retrait de chaque app ; base légale : intérêt légitime de l'éditeur.</p>`
           : ""
       }
 </main><footer><a href="index.html">Retour aux apps</a></footer>`,

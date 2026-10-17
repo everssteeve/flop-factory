@@ -24,6 +24,7 @@ export const COUNTER_JS = `// Compteur d'usage anonyme de Flop Factory : aucune 
   const me = document.currentScript;
   const origin = me && me.dataset.origin;
   const slug = me && me.dataset.slug;
+  if (me) { me.removeAttribute("data-origin"); me.removeAttribute("data-slug"); }
   if (!origin || !slug) return;
   if (navigator.webdriver || navigator.doNotTrack === "1" || navigator.globalPrivacyControl === true) return;
   const send = (path, event) => {

@@ -244,6 +244,9 @@ jobs:
         env:
           GOATCOUNTER_CODE: ${{ vars.GOATCOUNTER_CODE }}
           GOATCOUNTER_TOKEN: ${{ secrets.GOATCOUNTER_TOKEN }}
+          # Le site sera republié dans ce run (nouvelle app ou republication demandée) :
+          # la mesure des apps qui n'avaient pas encore le compteur commence.
+          FF_DEPLOYING: ${{ steps.arbiter.outputs.decision == 'go' || inputs.redeploy == true }}
         run: node scripts/verdict-j30.mjs "$DATA"
       # Toujours commiter le ledger validé, même si l'arbitre a échoué :
       # une dépense non enregistrée serait dépensée deux fois.

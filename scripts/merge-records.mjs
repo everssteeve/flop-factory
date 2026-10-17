@@ -61,12 +61,6 @@ export function validateDiscovered(root, incoming, maxDiscovered) {
 export function mergeRecords(root, records) {
   const config = loadConfig(root);
   const merged = [];
-  const ip = join(records, "factory", "ideas-discovered.json");
-  if (existsSync(ip)) {
-    const next = validateDiscovered(root, JSON.parse(readFileSync(ip, "utf8")), config.discovery.maxDiscovered);
-    writeFileSync(join(root, "factory", "ideas-discovered.json"), JSON.stringify(next, null, 2) + "\n");
-    merged.push("ideas-discovered.json");
-  }
   const ledgerDir = join(records, "factory", "ledger");
   if (existsSync(ledgerDir)) {
     for (const f of readdirSync(ledgerDir)) {
@@ -99,6 +93,18 @@ export function mergeRecords(root, records) {
       } else {
         throw new Error(`entrée inattendue dans les journaux : ${entry}`);
       }
+    }
+  }
+  // Idées découvertes en dernier, et jamais bloquantes : un fichier refusé est
+  // ignoré (avec un avertissement), le ledger et les journaux passent quand même.
+  const ip = join(records, "factory", "ideas-discovered.json");
+  if (existsSync(ip)) {
+    try {
+      const next = validateDiscovered(root, JSON.parse(readFileSync(ip, "utf8")), config.discovery.maxDiscovered);
+      writeFileSync(join(root, "factory", "ideas-discovered.json"), JSON.stringify(next, null, 2) + "\n");
+      merged.push("ideas-discovered.json");
+    } catch (e) {
+      console.warn(`::warning::idées découvertes ignorées : ${e.message}`);
     }
   }
   return merged;

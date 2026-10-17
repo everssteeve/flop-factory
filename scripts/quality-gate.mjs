@@ -56,6 +56,9 @@ export function checkSite(dir, files) {
   if (!/href=["']\.?\/?style\.css["']/i.test(html)) problems.push("style.css non lié");
   if (!/<script[^>]+src=["']\.?\/?app\.js["']/i.test(html)) problems.push("app.js non chargé");
   if (/localhost|127\.0\.0\.1/i.test(html)) problems.push("lien localhost dans la page");
+  // Le compteur d'usage appartient à l'usine : une app qui le cite pourrait fausser
+  // son verdict J+30 ou faire sortir des données par l'image de comptage.
+  for (const f of files) if (/goatcounter|ff-count|count\?p=|data-origin|data-slug/i.test(readFileSync(join(dir, f), "utf8"))) problems.push(`référence au compteur de l'usine dans ${f}`);
   for (const f of files) {
     const text = readFileSync(join(dir, f), "utf8");
     if (f.endsWith(".html") && EXTERNAL_TAG.test(text)) problems.push(`ressource externe dans ${f}`);

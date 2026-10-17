@@ -36,7 +36,9 @@ export function hasFactoryCsp(html, opts) {
 /** Pose la politique juste après <head>, avant tout script ou style, en remplaçant celle de l'usine. */
 export function harden(html, opts) {
   const clean = html.replace(FACTORY_META, "");
-  const m = /<head(\s[^>]*)?>/i.exec(clean);
+  // Les commentaires sont masqués : un <head> dans un commentaire ne compte pas.
+  const masked = clean.replace(/<!--[\s\S]*?-->/g, (c) => " ".repeat(c.length));
+  const m = /<head(\s[^>]*)?>/i.exec(masked);
   if (!m) throw new Error("pas de <head> où insérer la politique de sécurité");
   const at = m.index + m[0].length;
   return clean.slice(0, at) + metaFor(opts) + clean.slice(at);

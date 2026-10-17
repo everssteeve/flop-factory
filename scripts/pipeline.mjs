@@ -98,7 +98,8 @@ export function discoverIfNeeded({ root, states, work, records, run, config }) {
   const knownSlugs = new Set(ideas.map((i) => i.slug));
   const accepted = [];
   const rejected = [];
-  for (const c of (Array.isArray(out?.ideas) ? out.ideas : []).slice(0, d.maxIdeas)) {
+  const room = d.maxDiscovered - current.ideas.length;
+  for (const c of (Array.isArray(out?.ideas) ? out.ideas : []).slice(0, Math.min(d.maxIdeas, room))) {
     const problems = checkDiscovered(c, knownSlugs, blocklist);
     if (problems.length) rejected.push(`${String(c?.slug).slice(0, 30)} : ${problems.join(", ")}`);
     else {
@@ -123,8 +124,11 @@ export function runPipeline({ root, stateDir, work, records }, deps = {}) {
   const config = loadConfig(root);
   const limits = config.pipeline;
   const states = readStates(stateDir);
+  // Les idées découvertes aujourd'hui ne sont construites qu'au passage suivant,
+  // une fois validées et écrites sur data (la porte les lit là).
+  const ideasToday = loadIdeas(root);
   const discovery = discoverIfNeeded({ root, states, work, records, run, config });
-  const idea = pickIdea(loadIdeas(root), states, limits.maxAttempts);
+  const idea = pickIdea(ideasToday, states, limits.maxAttempts);
   if (!idea) return { stage: "none", reason: `aucune idée à construire${discovery ? ` (découverte : ${discovery})` : ""}` };
   // Une app déjà refusée escalateAfterFailures fois passe au modèle d'escalade
   // pour la spec et le build, même si ses runs s'étaient dits « ok ».

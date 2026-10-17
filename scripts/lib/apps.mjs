@@ -16,9 +16,16 @@ export const STATUSES = ["building", "live", "abandoned", "killed"];
 export function loadIdeas(root) {
   const { ideas: curated } = JSON.parse(readFileSync(join(root, "factory", "ideas.json"), "utf8"));
   const dp = join(root, "factory", "ideas-discovered.json");
-  const discovered = existsSync(dp) ? JSON.parse(readFileSync(dp, "utf8")).ideas : [];
-  const ideas = [...curated, ...discovered];
+  const curatedSlugs = new Set(curated.map((i) => i.slug));
+  // Une idée découverte qui reprend un slug posé à la main, ou mal formée, est ignorée :
+  // elle ne doit jamais bloquer l'usine.
+  const discovered = (existsSync(dp) ? JSON.parse(readFileSync(dp, "utf8")).ideas : []).filter(
+    (i) => i && !curatedSlugs.has(i.slug) && SLUG.test(i.slug ?? "") && i.slug.length <= 30 && typeof i.idea === "string" && i.idea.length >= 20 && i.idea.length <= 600,
+  );
+  const ideas = [...curated];
   const seen = new Set();
+  for (const i of discovered) if (!seen.has(i.slug)) { seen.add(i.slug); ideas.push(i); }
+  seen.clear();
   for (const i of ideas) {
     if (!SLUG.test(i.slug) || i.slug.length > 30) throw new Error(`slug d'idée invalide : ${i.slug}`);
     if (seen.has(i.slug)) throw new Error(`idée en double : ${i.slug}`);
@@ -48,7 +55,15 @@ export function checkDiscovered(c, knownSlugs, blocklist) {
   if (typeof c.evidence !== "string" || c.evidence.length < 10 || c.evidence.length > 300) p.push("evidence : 10 à 300 caractères");
   const text = `${c.slug} ${c.idea} ${c.evidence}`;
   for (const k of blocklist.keywords ?? []) if (keywordRegex(k).test(text)) p.push(`sujet interdit (${k})`);
-  if (/https?:|www\.|<|>|\{\{/.test(c.idea)) p.push("idée : ni lien, ni balise, ni gabarit");
+  // Le texte d'une idée finit dans les prompts d'agents qui ont un shell : une ligne,
+  // des caractères ordinaires, rien qui ressemble à un lien, une balise ou une consigne.
+  for (const [field, v] of [["idée", c.idea], ["evidence", c.evidence]]) {
+    if (typeof v !== "string") continue;
+    if (/https?:|www\.|[<>{}\[\]`#|\\$]/.test(v)) p.push(`${field} : ni lien, ni balise, ni code`);
+    if (!/^[\p{L}\p{N} .,;:!?'’()«»"\-–/%°+&]*$/u.test(v)) p.push(`${field} : caractères non autorisés`);
+    if (/(?<!\p{L})(instructions?|ignore[rz]?|consignes?|prompt|syst[èe]me|cl[ée]s?|api|token|secrets?|env|variables? d'environnement|mot de passe|password|assistant|claude|ia)(?!\p{L})/iu.test(v))
+      p.push(`${field} : vocabulaire de consigne refusé`);
+  }
   return p;
 }
 

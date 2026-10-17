@@ -5,13 +5,15 @@
 //
 // Prudence avant tout : sans mesure configurée, sans mesure couvrant toute la
 // fenêtre, ou si l'API ne répond pas, aucune app n'est retirée.
+// La fenêtre d'une app commence à `measuredSince`, posé le jour où le site est
+// republié avec le compteur (FF_DEPLOYING=true, ou un retrait qui republie).
 // Exécuté dans le job records (seul à écrire), avec GOATCOUNTER_CODE et
 // GOATCOUNTER_TOKEN (clé API en lecture seule).
 //
 //   node scripts/verdict-j30.mjs <data-dir>
 // Sortie : killed=<nombre d'apps retirées>.
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadConfig } from "./lib/budget.mjs";
@@ -50,24 +52,16 @@ export async function verdicts({ root, data, env = process.env, now = new Date()
   const config = loadConfig(root);
   const code = measureCode(env);
   const token = (env.GOATCOUNTER_TOKEN ?? "").trim();
-  if (!code || !token) return { killed: [], kept: [], note: "mesure non configurée : aucun verdict" };
+  if (!code || !token) return { killed: [], kept: [], started: [], note: "mesure non configurée : aucun verdict" };
 
-  // Début de la mesure : posé au premier passage où elle est configurée.
-  const mp = join(data, "factory", "measure.json");
-  if (!existsSync(mp)) {
-    mkdirSync(dirname(mp), { recursive: true });
-    writeFileSync(mp, JSON.stringify({ since: now.toISOString() }, null, 2) + "\n");
-    return { killed: [], kept: [], note: "mesure démarrée aujourd'hui" };
-  }
-  const since = new Date(JSON.parse(readFileSync(mp, "utf8")).since);
-  if (Number.isNaN(since.getTime())) throw new Error("factory/measure.json illisible");
 
   const { afterDays, minimum } = config.kill;
   const killed = [];
   const kept = [];
   for (const s of Object.values(readStates(data))) {
-    if (s.status !== "live" || s.verdictJ30) continue;
-    const start = new Date(Math.max(new Date(s.liveSince).getTime(), since.getTime()));
+    if (s.status !== "live" || s.verdictJ30 || !s.measuredSince) continue;
+    const start = new Date(s.measuredSince);
+    if (Number.isNaN(start.getTime())) continue;
     if (now.getTime() - start.getTime() < afterDays * DAY_MS) continue;
     const n = await usedVisitors({ code, token, slug: s.slug, start, end: now, fetchImpl });
     if (n === null) continue; // mesure indisponible : on réessaiera demain
@@ -82,7 +76,17 @@ export async function verdicts({ root, data, env = process.env, now = new Date()
     next.history = [...(next.history ?? []), { at: now.toISOString(), decision: next.verdictJ30.decision, reasons: [reason] }].slice(-20);
     writeFileSync(join(data, "factory", "apps", `${s.slug}.json`), JSON.stringify(next, null, 2) + "\n");
   }
-  return { killed, kept };
+  // Le site va être republié avec le compteur : la mesure des apps en ligne qui
+  // n'en avaient pas encore commence maintenant.
+  const started = [];
+  if (env.FF_DEPLOYING === "true" || killed.length) {
+    for (const s of Object.values(readStates(data))) {
+      if (s.status !== "live" || s.measuredSince) continue;
+      writeFileSync(join(data, "factory", "apps", `${s.slug}.json`), JSON.stringify({ ...s, measuredSince: now.toISOString() }, null, 2) + "\n");
+      started.push(s.slug);
+    }
+  }
+  return { killed, kept, started };
 }
 
 const isMain = import.meta.url === `file://${process.argv[1]}`;

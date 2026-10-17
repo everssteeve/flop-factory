@@ -206,6 +206,24 @@ test("découverte : lancée quand le stock baisse, idées filtrées puis enregis
   assert.deepEqual(loadIdeas(root).map((i) => i.slug), ["tirage-equipes", "minuteur-oeufs"]);
 });
 
+test("découverte : une idée trouvée aujourd'hui n'est construite qu'au passage suivant, stock plafonné", () => {
+  const root = tempRoot({ minBacklog: 2 });
+  mkdirSync(join(root, "factory", "apps"), { recursive: true });
+  writeFileSync(join(root, "factory", "apps", "tirage-equipes.json"), JSON.stringify({ slug: "tirage-equipes", status: "live", attempts: 1 }));
+  const fake = fakeAteliers({ discovered: { ideas: [GOOD_FIND] } });
+  const out = runPipeline({ root, stateDir: root, work: mkdtempSync(join(tmpdir(), "ff-work-")) }, { runAtelier: fake.run });
+  assert.equal(out.stage, "none");
+  assert.equal(fake.calls.length, 1);
+  // Stock presque plein : on n'ajoute que ce qui tient.
+  const cfg = JSON.parse(readFileSync(join(root, "factory", "config.json"), "utf8"));
+  cfg.discovery.maxDiscovered = 2;
+  writeFileSync(join(root, "factory", "config.json"), JSON.stringify(cfg));
+  const two = { ...GOOD_FIND, slug: "minuteur-thes", idea: "Choisir un type de thé et lancer le minuteur d'infusion conseillé pour ce thé." };
+  const three = { ...GOOD_FIND, slug: "minuteur-pates", idea: "Choisir une forme de pâtes et lancer le minuteur de cuisson conseillé pour elle." };
+  runPipeline({ root, stateDir: root, work: mkdtempSync(join(tmpdir(), "ff-work-")) }, { runAtelier: fakeAteliers({ discovered: { ideas: [two, three] } }).run });
+  assert.equal(JSON.parse(readFileSync(join(root, "factory", "ideas-discovered.json"), "utf8")).ideas.length, 2);
+});
+
 test("découverte : inutile si le stock suffit, sans effet si elle échoue", () => {
   const root = tempRoot({ minBacklog: 1 });
   const fake = fakeAteliers();
