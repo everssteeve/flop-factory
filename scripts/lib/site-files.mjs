@@ -13,6 +13,9 @@ export function collectFiles(dir, { allowedExtensions, maxSiteBytes }) {
   const problems = [];
   let total = 0;
   for (const name of readdirSync(dir).sort()) {
+    // Fichiers cachés : jamais transportés ni publiés. La sandbox de Claude Code
+    // crée elle-même .claude/ et des .env* vides dans le dossier de travail.
+    if (name.startsWith(".")) continue;
     const p = join(dir, name);
     const st = lstatSync(p);
     if (st.isSymbolicLink()) problems.push(`lien symbolique refusé : ${name}`);
