@@ -1,0 +1,31 @@
+{
+  "runId": "qualite-2026-10-17T13-50-39-888Z-42ae1c12",
+  "atelier": "qualite",
+  "prompt": "factory/prompts/review.md",
+  "model": "haiku",
+  "capUsd": 0.4282,
+  "remainingBeforeUsd": 0.8564,
+  "usd": 0.0037508,
+  "status": "ok",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 4,
+  "permissionDenials": [],
+  "report": {
+    "status": "ok",
+    "summary": "Relecture de Convertisseur Cuisine terminée. node test.mjs passe (8/8), mais AC-7 n'est vérifié que pour la balise meta viewport : l'absence de défilement horizontal à 360 px n'est ni testée ni démontrée. Score 5/10, un défaut bloquant consigné dans review.json. Aucune ressource externe, collecte de données ou sujet interdit détecté.",
+    "blockers": [
+      "AC-7 : absence de défilement horizontal à 360 px non testée (test.mjs ne contrôle que la meta viewport)"
+    ]
+  },
+  "stderrTail": ""
+}

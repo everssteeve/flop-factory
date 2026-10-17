@@ -1,7 +1,7 @@
 {
   "slug": "convertisseur-cuisine",
   "status": "building",
-  "attempts": 1,
+  "attempts": 2,
   "liveSince": null,
   "history": [
     {
@@ -9,6 +9,14 @@
       "decision": "retry",
       "reasons": [
         "porte : API réseau interdite dans test.mjs"
+      ]
+    },
+    {
+      "at": "2026-10-17T13:51:50.510Z",
+      "decision": "retry",
+      "reasons": [
+        "revue : AC-7 non entièrement vérifié : test.mjs contrôle seulement la balise meta viewport (width=device-width). Le critère exige aussi « il n'y a pas de défilement horizontal » à 360 px, et ce point n'est ni testé ni démontré. Le test l'admet en commentaire. Le CSS masque le débordement (overflow-x",
+        "revue : score 5 < 6"
       ]
     }
   ]

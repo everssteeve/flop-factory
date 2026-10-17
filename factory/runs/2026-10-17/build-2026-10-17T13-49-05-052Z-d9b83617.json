@@ -1,0 +1,29 @@
+{
+  "runId": "build-2026-10-17T13-49-05-052Z-d9b83617",
+  "atelier": "build",
+  "prompt": "dist/prompts/spec-convertisseur-cuisine.md",
+  "model": "haiku",
+  "capUsd": 1.2215,
+  "remainingBeforeUsd": 2.443,
+  "usd": 0.00248085,
+  "status": "ok",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 3,
+  "permissionDenials": [],
+  "report": {
+    "status": "ok",
+    "summary": "Spécification de Convertisseur Cuisine écrite dans spec.json : conversion d'unités (tasse, cuillère, once, gramme, millilitre, °C/°F), mise à l'échelle des quantités selon le nombre de personnes, fonctionnement 100 % navigateur. 7 critères d'acceptation testables. Choix retenus : 1 tasse = 240 ml, 1 once (poids) = 28,35 g, arrondi à deux décimales ; l'équivalence ingrédient/densité est exclue.",
+    "blockers": []
+  },
+  "stderrTail": ""
+}
