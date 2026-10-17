@@ -77,10 +77,21 @@ export function parseOutput(stdout) {
   return { init, result };
 }
 
-/** Le plugin des garde-fous est-il chargé, sans erreur ? */
+/**
+ * Plugins intégrés au binaire Claude Code (préfixe cc-plugin-) : ils se
+ * chargent même en --bare et ne viennent pas de nous. Tout autre plugin que le
+ * nôtre est une anomalie.
+ */
+export function unexpectedPlugins(init) {
+  return (init?.plugins ?? [])
+    .map((p) => p?.name)
+    .filter((n) => n !== PLUGIN_NAME && !String(n).startsWith("cc-plugin-"));
+}
+
+/** Le plugin des garde-fous est-il chargé, sans erreur, et seul de son espèce ? */
 export function pluginLoaded(init) {
   if (!init) return false;
   const loaded = (init.plugins ?? []).some((p) => p?.name === PLUGIN_NAME);
   const errors = (init.plugin_errors ?? []).length;
-  return loaded && errors === 0;
+  return loaded && errors === 0 && unexpectedPlugins(init).length === 0;
 }
