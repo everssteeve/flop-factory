@@ -29,6 +29,7 @@ Contraintes de l'app à spécifier :
 ```
 
 - 2 à {{MAX_ACCEPTANCE}} critères d'acceptation, identifiants `AC-1`, `AC-2`… Chaque `then` doit pouvoir être vérifié par du code (une valeur calculée, un élément présent, un texte affiché), pas par un jugement.
+- Les critères portent sur le **comportement** de l'app (calculs, contenus, réactions aux actions). N'écris pas de critère de mise en page, d'affichage mobile, d'absence d'erreur console ou de requête externe : l'usine les contrôle elle-même dans un vrai navigateur, à 375 et 1280 px, pour toutes les apps. Un critère qu'un test Node ne peut pas exécuter ne peut jamais être validé.
 - Reste petit : mieux vaut trois fonctions qui marchent que dix à moitié.
 
 N'écris aucun autre fichier que `spec.json` et `report.json`.
