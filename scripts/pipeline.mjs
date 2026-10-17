@@ -16,7 +16,7 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadConfig } from "./lib/budget.mjs";
 import { loadIdeas, readStates, pickIdea, validateSpec } from "./lib/apps.mjs";
-import { copyAccepted, NEVER_PUBLISHED } from "./lib/site-files.mjs";
+import { copyAccepted, NEVER_PUBLISHED, WORKDIR_PACKAGE } from "./lib/site-files.mjs";
 import { runAtelier } from "./run-atelier.mjs";
 
 export function render(template, vars) {
@@ -94,6 +94,7 @@ export function runPipeline({ root, stateDir, work, records }, deps = {}) {
   const appDir = join(base, "app");
   mkdirSync(appDir, { recursive: true });
   writeFileSync(join(appDir, "spec.json"), specText + "\n");
+  writeFileSync(join(appDir, "package.json"), WORKDIR_PACKAGE);
   const buildPrompt = writePrompt(root, `build-${idea.slug}`, render(readFileSync(join(root, "factory", "prompts", "build.md"), "utf8"), { SPEC: specText }));
   const b = run({ atelier: "build", prompt: buildPrompt, workdir: appDir, records, model, maxTurns: String(limits.buildMaxTurns) });
   if (halted(b)) return { slug: idea.slug, stage: b.status, reason: b.status };
@@ -104,6 +105,7 @@ export function runPipeline({ root, stateDir, work, records }, deps = {}) {
   const copy = copyAccepted(appDir, reviewDir, limits, NEVER_PUBLISHED);
   if (copy.problems.length) return stop("build", b, copy.problems.join(" ; "));
   writeFileSync(join(reviewDir, "spec.json"), specText + "\n");
+  writeFileSync(join(reviewDir, "package.json"), WORKDIR_PACKAGE);
   const r = run({ atelier: "qualite", prompt: "factory/prompts/review.md", workdir: reviewDir, records, maxTurns: String(limits.reviewMaxTurns) });
   // Revue sans budget ou arrêtée : pas de verdict aujourd'hui, aucune tentative comptée.
   if (halted(r)) return { slug: idea.slug, stage: r.status, reason: `revue : ${r.status}` };

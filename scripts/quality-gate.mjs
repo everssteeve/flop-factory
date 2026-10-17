@@ -10,12 +10,13 @@
 // <out-dir> : gate.json, spec.json, review.json et site/ (fichiers publiables).
 // Sortie 0 dès que gate.json est écrit, même si l'app est refusée.
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync, mkdtempSync, cpSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadConfig } from "./lib/budget.mjs";
 import { loadIdeas, validateSpec } from "./lib/apps.mjs";
-import { collectFiles, copyAccepted, NEVER_PUBLISHED } from "./lib/site-files.mjs";
+import { collectFiles, copyAccepted, NEVER_PUBLISHED, WORKDIR_PACKAGE } from "./lib/site-files.mjs";
 import { runSandboxed } from "./lib/sandbox.mjs";
 import { normalizeReview } from "./pipeline.mjs";
 import { harden } from "./lib/harden.mjs";
@@ -67,7 +68,12 @@ export function checkSite(dir, files) {
 
 /** Rejoue test.mjs en sandbox ; chaque critère doit afficher sa ligne `ok AC-n`. */
 export function checkAcceptance(dir, spec) {
-  const r = runSandboxed(dir, ["test.mjs"]);
+  // Les tests tournent avec le même package.json que pendant le build, sur une copie.
+  const withPkg = mkdtempSync(join(tmpdir(), "ff-acc-"));
+  cpSync(dir, withPkg, { recursive: true });
+  writeFileSync(join(withPkg, "package.json"), WORKDIR_PACKAGE);
+  const r = runSandboxed(withPkg, ["test.mjs"]);
+  rmSync(withPkg, { recursive: true, force: true });
   if (r.infra) return { problems: [`test.mjs : ${r.error}`], seen: [], infra: true };
   if (r.error) return { problems: [`test.mjs : ${r.error}`], seen: [] };
   const seen = [...new Set([...r.stdout.matchAll(/^ok (AC-\d+)\s*$/gm)].map((m) => m[1]))];

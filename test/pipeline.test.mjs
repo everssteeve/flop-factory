@@ -106,6 +106,9 @@ test("chaîne complète : spec, build, revue sur copie, sortie propre", () => {
   assert.ok(fake.calls.every((c) => c.records === "/r"));
   // La spec validée est rendue dans le prompt de build.
   assert.ok(readFileSync(join(root, fake.calls[1].prompt), "utf8").includes('"slug": "tirage-equipes"'));
+  // L'usine pose un package.json valide avant que la sandbox ne crée le sien, vide.
+  assert.equal(JSON.parse(readFileSync(join(work, "tirage-equipes", "app", "package.json"), "utf8")).type, "module");
+  assert.equal(JSON.parse(readFileSync(join(work, "tirage-equipes", "review", "package.json"), "utf8")).type, "module");
   // La revue travaille sur une copie sans rapport de l'agent de build.
   assert.equal(existsSync(join(work, "tirage-equipes", "review", "report.json")), false);
   const files = readdirSync(join(work, "tirage-equipes", "out")).sort();
