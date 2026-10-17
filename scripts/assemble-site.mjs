@@ -29,7 +29,8 @@ ul.apps a:hover{border-color:var(--accent)}ul.apps strong{display:block;color:va
 footer{max-width:860px;margin:0 auto;padding:16px;color:var(--muted);font-size:.875rem}a{color:var(--accent)}`;
 
 // Fichier servi à la racine : la politique de sécurité interdit les styles en ligne.
-const FOOTER_CSS = `.ff-legal{margin:32px auto 0;padding:16px;max-width:860px;font:13px/1.5 system-ui,sans-serif;color:#6b6b66;text-align:center}.ff-legal a{color:inherit}`;
+// Le pied de page doit passer sous l'app, même quand son <body> est en flex ou en grille.
+const FOOTER_CSS = `body:has(>.ff-legal){flex-wrap:wrap}.ff-legal{flex:0 0 100%;grid-column:1/-1;width:100%;box-sizing:border-box;margin:32px auto 0;padding:16px;max-width:860px;font:13px/1.5 system-ui,sans-serif;color:#6b6b66;text-align:center}.ff-legal a{color:inherit}`;
 
 function legalFooter(config, prefix) {
   return `<link rel="stylesheet" href="${prefix}ff-legal.css"><footer class="ff-legal">Publié par ${e(config.publisher.name)} · <a href="${prefix}mentions-legales.html">Mentions légales</a> · <a href="${prefix}index.html">Autres apps</a> · Construite et publiée sans intervention humaine</footer>`;
