@@ -80,7 +80,7 @@
     "minFailures": 2,
     "benchSlug": "checklist-valise",
     "maxChangedLines": 40,
-    "evalWindow": 5,
+    "evalWindow": 8,
     "tolerance": 0.15,
     "baselineWindow": 10,
     "maxTurns": 25

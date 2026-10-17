@@ -10,7 +10,7 @@ export function decisions(dataDir) {
   const out = [];
   for (const s of Object.values(readStates(dataDir))) {
     for (const h of s.history ?? []) {
-      if (!["go", "retry", "abandon"].includes(h.decision)) continue;
+      if (!["go", "retry", "abandon"].includes(h.decision) || typeof h.at !== "string") continue;
       out.push({ slug: s.slug, at: h.at, decision: h.decision, reasons: h.reasons ?? [] });
     }
   }

@@ -13,8 +13,8 @@ import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync, cpSync } fr
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadConfig, dayKey } from "./lib/budget.mjs";
-import { loadIdeas, readStates } from "./lib/apps.mjs";
-import { ZONE_NAMES, zonePrompt, checkPrompt, defaultPrompt } from "./lib/brain-zone.mjs";
+import { loadIdeas } from "./lib/apps.mjs";
+import { ZONE_NAMES, zonePrompt, checkPrompt, defaultPrompt, lineDiff } from "./lib/brain-zone.mjs";
 import { digest } from "./lib/digest.mjs";
 import { buildApp } from "./pipeline.mjs";
 import { runAtelier } from "./run-atelier.mjs";
@@ -24,17 +24,9 @@ export function readBrainState(root) {
   return existsSync(p) ? JSON.parse(readFileSync(p, "utf8")) : { lastProposalAt: null, current: null, history: [] };
 }
 
-/** Lignes du candidat absentes de l'original : la taille du changement. */
+/** Lignes ajoutées et retirées : la taille du changement. */
 export function changedLines(before, after) {
-  const old = new Map();
-  for (const l of before.split("\n")) old.set(l, (old.get(l) ?? 0) + 1);
-  let n = 0;
-  for (const l of after.split("\n")) {
-    const c = old.get(l) ?? 0;
-    if (c > 0) old.set(l, c - 1);
-    else if (l.trim()) n += 1;
-  }
-  return n;
+  return lineDiff(before, after).total;
 }
 
 /** Faut-il proposer aujourd'hui ? Renvoie null si oui, sinon la raison. */
@@ -62,7 +54,6 @@ export function runBrain({ root, work, records, now = new Date() }, deps = {}) {
   mkdirSync(dir, { recursive: true });
   const current = Object.fromEntries(ZONE_NAMES.map((n) => [n, zonePrompt(root, n)]));
   for (const n of ZONE_NAMES) writeFileSync(join(dir, `${n}.md`), current[n]);
-  writeFileSync(join(dir, "REFERENCE-review.md"), readFileSync(join(root, "factory", "prompts", "review.md"), "utf8"));
   writeFileSync(join(dir, "digest.json"), JSON.stringify(dig, null, 2) + "\n");
 
   const r = run({ atelier: "cerveau", prompt: "factory/prompts/brain.md", workdir: dir, records, maxTurns: String(config.brain.maxTurns) });
@@ -75,13 +66,13 @@ export function runBrain({ root, work, records, now = new Date() }, deps = {}) {
   for (const n of ZONE_NAMES) {
     const text = readFileSync(join(dir, `${n}.md`), "utf8");
     if (text === current[n]) continue;
-    const p = checkPrompt(n, text, defaultPrompt(root, n));
+    const p = checkPrompt(n, text, defaultPrompt(root, n), { current: current[n], maxChangedLines: config.brain.maxChangedLines });
     if (p.length) problems.push(`${n} : ${p.join(", ")}`);
     lines += changedLines(current[n], text);
     candidate[n] = text;
   }
   if (!Object.keys(candidate).length) return { brain: "failed", reason: "aucun prompt modifié" };
-  if (lines > config.brain.maxChangedLines) problems.push(`changement trop large : ${lines} lignes (max ${config.brain.maxChangedLines})`);
+  if (lines > config.brain.maxChangedLines) problems.push(`changement trop large : ${lines} lignes au total (max ${config.brain.maxChangedLines})`);
   if (problems.length) return { brain: "failed", reason: problems.join(" ; ").slice(0, 500) };
   let proposal = null;
   try {
