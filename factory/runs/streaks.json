@@ -10,5 +10,7 @@
   "build:dist/prompts/build-checklist-valise.md": 0,
   "decouverte:dist/prompts/discovery.md": 0,
   "build:dist/prompts/spec-minuteur-pomodoro.md": 0,
-  "build:dist/prompts/build-minuteur-pomodoro.md": 0
+  "build:dist/prompts/build-minuteur-pomodoro.md": 0,
+  "build:dist/prompts/spec-compteur-scores-jeux.md": 0,
+  "build:dist/prompts/build-compteur-scores-jeux.md": 0
 }

@@ -1,0 +1,73 @@
+{
+  "slug": "compteur-scores-jeux",
+  "status": "live",
+  "attempts": 1,
+  "liveSince": "2026-10-17T17:30:31.076Z",
+  "history": [
+    {
+      "at": "2026-10-17T17:30:31.076Z",
+      "decision": "go",
+      "reasons": []
+    }
+  ],
+  "spec": {
+    "slug": "compteur-scores-jeux",
+    "name": "Compteur de scores de jeux",
+    "pitch": "Tableau de scores pour vos soirées jeux de société et de cartes : points manche par manche, totaux et classement, gardés dans votre navigateur.",
+    "problem": "Pendant une soirée jeux, les scores se perdent sur un coin de papier et les additions à la main provoquent des erreurs et des discussions sur le vainqueur.",
+    "audience": "Joueurs occasionnels en soirée jeux de société ou de cartes, sur téléphone comme sur ordinateur, qui veulent un tableau de scores immédiat sans créer de compte.",
+    "features": [
+      "Ajouter des joueurs et saisir les points de chaque manche, en nombres entiers.",
+      "Calculer automatiquement le total de chaque joueur et afficher le classement, les ex aequo partageant le même rang.",
+      "Activer l'option « le plus bas score gagne » pour les jeux où le score le plus faible l'emporte.",
+      "Sauvegarder la partie dans le navigateur (localStorage) pour la retrouver au rechargement, et la remettre à zéro en un clic."
+    ],
+    "acceptance": [
+      {
+        "id": "AC-1",
+        "given": "deux joueurs Alice et Bob, Alice a des manches de 10 puis 5 points, Bob de 3 puis 4 points, et le mode « le plus haut gagne » est actif",
+        "when": "le classement est calculé",
+        "then": "Alice a un total de 15, Bob un total de 7, et Alice est classée première"
+      },
+      {
+        "id": "AC-2",
+        "given": "les mêmes joueurs et les mêmes manches (Alice 15, Bob 7)",
+        "when": "l'option « le plus bas score gagne » est activée",
+        "then": "Bob est classé premier et le joueur désigné gagnant est Bob"
+      },
+      {
+        "id": "AC-3",
+        "given": "Alice a un total de 15 et Bob un total de 15 après deux manches chacun",
+        "when": "le classement est calculé",
+        "then": "Alice et Bob sont tous deux classés au rang 1 (ex aequo) et aucun gagnant unique n'est désigné"
+      },
+      {
+        "id": "AC-4",
+        "given": "la partie contient Alice (total 15) et Bob (total 7)",
+        "when": "une nouvelle manche est ajoutée avec 2 points pour Alice et 0 point pour Bob",
+        "then": "le total d'Alice passe à 17, celui de Bob reste à 7, et le nombre de manches affiché est 3"
+      },
+      {
+        "id": "AC-5",
+        "given": "le champ de saisie d'une manche contient le texte « abc » ou est vide",
+        "when": "l'utilisateur valide la manche",
+        "then": "aucune manche n'est ajoutée, le total du joueur reste inchangé et un message d'erreur est affiché"
+      },
+      {
+        "id": "AC-6",
+        "given": "une partie avec deux joueurs et des manches saisies est enregistrée dans localStorage",
+        "when": "la page est rechargée ou l'état est relu depuis localStorage",
+        "then": "les mêmes joueurs, les mêmes manches, les mêmes totaux et le même mode de classement sont restaurés"
+      }
+    ],
+    "outOfScope": [
+      "Comptes utilisateurs, connexion et synchronisation entre appareils",
+      "Cookies, serveur, base de données ou envoi de données vers un autre site",
+      "Historique de plusieurs parties, statistiques par joueur et graphiques",
+      "Export, impression ou partage des scores",
+      "Gestion des scores décimaux, des équipes et des règles spécifiques à chaque jeu",
+      "Minuteur, dés virtuels ou calcul automatique des points selon les cartes"
+    ]
+  },
+  "measuredSince": "2026-10-17T17:30:31.131Z"
+}

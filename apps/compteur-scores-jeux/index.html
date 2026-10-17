@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; media-src 'self' data:; frame-src 'none'; worker-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"><meta name="referrer" content="no-referrer">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Compteur de scores de jeux</title>
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <header>
+    <h1>Compteur de scores de jeux</h1>
+    <p class="intro">Points manche par manche, totaux et classement, gardés dans votre navigateur.</p>
+  </header>
+
+  <main>
+    <section aria-labelledby="titre-joueurs">
+      <h2 id="titre-joueurs">Joueurs</h2>
+      <form id="form-joueur" class="ligne">
+        <label for="nom-joueur">Nom du joueur</label>
+        <div class="champ-bouton">
+          <input id="nom-joueur" name="nom" type="text" maxlength="30" autocomplete="off" required>
+          <button type="submit" class="bouton">Ajouter le joueur</button>
+        </div>
+      </form>
+      <div class="options">
+        <input id="plus-bas-gagne" type="checkbox">
+        <label for="plus-bas-gagne">Le plus bas score gagne</label>
+      </div>
+    </section>
+
+    <section aria-labelledby="titre-manche">
+      <h2 id="titre-manche">Saisir une manche</h2>
+      <form id="form-manche">
+        <div id="champs-manche" class="champs"></div>
+        <p id="erreur" class="erreur" role="alert"></p>
+        <button type="submit" class="bouton">Valider la manche</button>
+      </form>
+    </section>
+
+    <section aria-labelledby="titre-classement">
+      <h2 id="titre-classement">Classement</h2>
+      <p id="nombre-manches" class="info">Aucune manche</p>
+      <p id="gagnant" class="info" aria-live="polite"></p>
+      <ol id="classement" class="classement"></ol>
+      <button id="remise-a-zero" type="button" class="bouton bouton-secondaire">Remettre les scores à zéro</button>
+    </section>
+  </main>
+</body>
+</html>
