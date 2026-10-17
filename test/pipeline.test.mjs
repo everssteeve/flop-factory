@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, cpSync, writeFileSync, readFileSync, existsSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { runPipeline, render, normalizeReview } from "../scripts/pipeline.mjs";
+import { runPipeline, render, normalizeReview, previousFeedback } from "../scripts/pipeline.mjs";
 import { validateSpec, pickIdea, loadIdeas, escapeHtml } from "../scripts/lib/apps.mjs";
 import { loadConfig } from "../scripts/lib/budget.mjs";
 
@@ -166,6 +166,19 @@ test("chaîne : après escalateAfterFailures refus, spec et build passent au mod
   fake = fakeAteliers();
   runPipeline({ root, stateDir: root, work: mkdtempSync(join(tmpdir(), "ff-work-")) }, { runAtelier: fake.run });
   assert.deepEqual(fake.calls.map((c) => c.model), [config.models.escalation, config.models.escalation, undefined]);
+});
+
+test("retry : les motifs du dernier refus sont donnés au build suivant", () => {
+  assert.equal(previousFeedback(undefined), "");
+  const fb = previousFeedback({ history: [{ decision: "retry", reasons: ["revue : AC-8 testé par grep du source", "revue : score 5 < 6"] }] });
+  assert.match(fb, /AC-8 testé par grep/);
+  assert.match(fb, /chercher une chaîne dans le source ne compte pas/);
+  const root = tempRoot();
+  mkdirSync(join(root, "factory", "apps"), { recursive: true });
+  writeFileSync(join(root, "factory", "apps", "tirage-equipes.json"), JSON.stringify({ slug: "tirage-equipes", status: "building", attempts: 1, history: [{ decision: "retry", reasons: ["porte : critère AC-2 non vérifié"] }] }));
+  const fake = fakeAteliers();
+  runPipeline({ root, stateDir: root, work: mkdtempSync(join(tmpdir(), "ff-work-")) }, { runAtelier: fake.run });
+  assert.match(readFileSync(join(root, fake.calls[1].prompt), "utf8"), /critère AC-2 non vérifié/);
 });
 
 test("chaîne : plus rien à construire", () => {

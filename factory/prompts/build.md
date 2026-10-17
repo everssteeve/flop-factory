@@ -19,4 +19,4 @@ Lance `node test.mjs`. Corrige jusqu'à ce que toutes les lignes `ok AC-n` s'aff
 
 Le pied de page légal est ajouté par l'usine à la publication : n'en écris pas.
 
-N'installe aucun paquet, ne pousse rien, ne déploie rien. Termine par `report.json` comme le demandent les règles du run.
+{{PREVIOUS}}N'installe aucun paquet, ne pousse rien, ne déploie rien. Termine par `report.json` comme le demandent les règles du run.
