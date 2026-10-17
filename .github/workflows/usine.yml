@@ -135,6 +135,10 @@ jobs:
           node-version: 22
       - name: Sandbox et navigateur
         run: |
+          # Le code de l'agent va tourner ici (en sandbox) : on retire le démon Docker,
+          # dont le socket donnerait la main sur la machine.
+          sudo systemctl stop docker.socket docker.service containerd.service 2>/dev/null || true
+          sudo rm -f /var/run/docker.sock
           sudo apt-get update -qq
           sudo apt-get install -y -qq bubblewrap
           if [ -f /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
@@ -199,6 +203,7 @@ jobs:
           fi
           echo "DATA=$DATA" >> "$GITHUB_ENV"
       - name: Valider et fusionner le ledger
+        id: ledger
         run: node scripts/merge-records.mjs "$RUNNER_TEMP/records"
       - name: Arbitre go / no-go
         id: arbiter
@@ -207,12 +212,21 @@ jobs:
           SLUG: ${{ needs.agent.outputs.slug }}
           STAGE: ${{ needs.agent.outputs.stage }}
           REASON: ${{ needs.agent.outputs.reason }}
+          LEAK: ${{ needs.agent.outputs.leak }}
           GATE: ${{ needs.gate.result }}
         run: |
-          # Une app sortie de la chaîne mais qui n'a pas de verdict (fuite, porte plantée) est un échec.
-          if [ "$STAGE" = "done" ] && [ "$GATE" != "success" ]; then STAGE=build; REASON="porte non passée ($GATE)"; fi
+          if [ "$STAGE" = "done" ] && [ "$LEAK" != "none" ]; then
+            # Clé retrouvée dans l'app : échec imputable à l'agent.
+            STAGE=build; REASON="fuite de la clé dans l'app"
+          elif [ "$STAGE" = "done" ] && [ "$GATE" != "success" ]; then
+            # Porte plantée ou annulée : panne, la tentative n'est pas comptée.
+            STAGE=infra; REASON="porte non exécutée ($GATE)"
+          fi
           node scripts/arbiter.mjs "$DATA" --slug "$SLUG" --stage "$STAGE" --reason "$REASON" --verdict "$RUNNER_TEMP/verdict"
+      # Toujours commiter le ledger validé, même si l'arbitre a échoué :
+      # une dépense non enregistrée serait dépensée deux fois.
       - name: Commiter sur data
+        if: always() && steps.ledger.outcome == 'success'
         run: |
           mkdir -p "$DATA/factory"
           rm -rf "$DATA/factory/ledger" "$DATA/factory/runs"

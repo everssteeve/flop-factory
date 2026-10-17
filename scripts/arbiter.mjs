@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Arbitre go / no-go. Du code, pas un modèle : la porte doit être passée, la
 // revue sans défaut bloquant et au-dessus du seuil. Sinon l'idée est retentée
-// au prochain passage (le modèle monte d'un cran après deux échecs), puis
+// au prochain passage (spec et build passent au modèle d'escalade après
+// escalateAfterFailures tentatives ratées, voir pipeline.mjs), puis
 // abandonnée après maxAttempts. Exécuté dans le job records, seul à écrire.
 //
 //   node scripts/arbiter.mjs <data-dir> --slug S --stage X --reason R [--verdict <dir>]
@@ -22,8 +23,8 @@ const HISTORY = 20;
 /** Décision pure à partir du verdict de la porte et de la revue. */
 export function decide({ gate, review, config }) {
   const reasons = [];
-  if (!gate) reasons.push("pas de verdict de la porte");
-  else if (!gate.passed) reasons.push(...gate.problems.map((p) => `porte : ${p}`));
+  if (!gate || !Array.isArray(gate.problems)) reasons.push("pas de verdict de la porte");
+  else if (gate.passed !== true) reasons.push(...(gate.problems.length ? gate.problems : ["refusée"]).map((p) => `porte : ${p}`));
   if (review) {
     reasons.push(...review.blocking.map((b) => `revue : ${b}`));
     if (review.score < config.pipeline.reviewMinScore) reasons.push(`revue : score ${review.score} < ${config.pipeline.reviewMinScore}`);
@@ -57,8 +58,10 @@ function arg(argv, name) {
 
 export function arbitrate({ root, data, slug, stage, reason, verdict, now = new Date() }) {
   const config = loadConfig(root);
-  // Arrêt, budget épuisé ou rien à construire : aucune tentative consommée.
-  if (!["spec", "build", "done"].includes(stage)) return { decision: "skip", reasons: [`étape ${stage}`], attempts: null };
+  // Arrêt, budget épuisé, rien à construire ou panne d'infrastructure (porte
+  // plantée, sandbox ou navigateur absents) : aucune tentative consommée.
+  // « error » (chaîne plantée) compte : l'agent a pu la provoquer.
+  if (!["spec", "build", "done", "error"].includes(stage)) return { decision: "skip", reasons: [`étape ${stage}`], attempts: null };
   if (!SLUG.test(slug ?? "")) throw new Error(`slug invalide : ${slug}`);
   const idea = loadIdeas(root).find((i) => i.slug === slug);
   if (!idea) throw new Error(`app inconnue : ${slug}`);
@@ -72,7 +75,8 @@ export function arbitrate({ root, data, slug, stage, reason, verdict, now = new 
     if (gate.slug !== slug) throw new Error(`verdict pour ${gate.slug}, attendu ${slug}`);
     review = normalizeReview(JSON.parse(readFileSync(join(verdict, "review.json"), "utf8")));
     spec = JSON.parse(readFileSync(join(verdict, "spec.json"), "utf8"));
-    if (validateSpec(spec, idea, config).length) gate = { ...gate, passed: false, problems: [...gate.problems, "spec invalide"] };
+    if (gate.infra === true) return { decision: "skip", reasons: ["porte sans moyen de juger (infrastructure)"], attempts: null };
+    if (validateSpec(spec, idea, config).length) gate = { ...gate, passed: false, problems: [...(gate.problems ?? []), "spec invalide"] };
   }
   const verdictDecision =
     stage === "done" ? decide({ gate, review, config }) : { go: false, reasons: [`atelier ${stage} : ${String(reason ?? "échec").slice(0, 300)}`] };

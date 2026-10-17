@@ -55,8 +55,13 @@ export function runPipeline({ root, stateDir, work, records }, deps = {}) {
   const run = deps.runAtelier ?? ((opts) => runAtelier(opts, { root, ...deps.atelierEnv }));
   const config = loadConfig(root);
   const limits = config.pipeline;
-  const idea = pickIdea(loadIdeas(root), readStates(stateDir), limits.maxAttempts);
+  const states = readStates(stateDir);
+  const idea = pickIdea(loadIdeas(root), states, limits.maxAttempts);
   if (!idea) return { stage: "none", reason: "aucune idée à construire" };
+  // Une app déjà refusée escalateAfterFailures fois passe au modèle d'escalade
+  // pour la spec et le build, même si ses runs s'étaient dits « ok ».
+  const attempts = states[idea.slug]?.attempts ?? 0;
+  const model = attempts >= config.models.escalateAfterFailures ? config.models.escalation : undefined;
 
   const base = join(work, idea.slug);
   rmSync(base, { recursive: true, force: true });
@@ -76,7 +81,7 @@ export function runPipeline({ root, stateDir, work, records }, deps = {}) {
     }),
   );
   const specDir = join(base, "spec");
-  const s = run({ atelier: "build", prompt: specPrompt, workdir: specDir, records, maxTurns: String(limits.specMaxTurns) });
+  const s = run({ atelier: "build", prompt: specPrompt, workdir: specDir, records, model, maxTurns: String(limits.specMaxTurns) });
   if (halted(s)) return { slug: idea.slug, stage: s.status, reason: s.status };
   if (s.status !== "ok") return stop("spec", s);
   const spec = readJson(join(specDir, "spec.json"));
@@ -90,7 +95,7 @@ export function runPipeline({ root, stateDir, work, records }, deps = {}) {
   mkdirSync(appDir, { recursive: true });
   writeFileSync(join(appDir, "spec.json"), specText + "\n");
   const buildPrompt = writePrompt(root, `build-${idea.slug}`, render(readFileSync(join(root, "factory", "prompts", "build.md"), "utf8"), { SPEC: specText }));
-  const b = run({ atelier: "build", prompt: buildPrompt, workdir: appDir, records, maxTurns: String(limits.buildMaxTurns) });
+  const b = run({ atelier: "build", prompt: buildPrompt, workdir: appDir, records, model, maxTurns: String(limits.buildMaxTurns) });
   if (halted(b)) return { slug: idea.slug, stage: b.status, reason: b.status };
   if (b.status !== "ok") return stop("build", b);
 
@@ -100,12 +105,15 @@ export function runPipeline({ root, stateDir, work, records }, deps = {}) {
   if (copy.problems.length) return stop("build", b, copy.problems.join(" ; "));
   writeFileSync(join(reviewDir, "spec.json"), specText + "\n");
   const r = run({ atelier: "qualite", prompt: "factory/prompts/review.md", workdir: reviewDir, records, maxTurns: String(limits.reviewMaxTurns) });
-  // Revue ratée ou sans budget : l'app part quand même à la porte, avec une revue bloquante.
+  // Revue sans budget ou arrêtée : pas de verdict aujourd'hui, aucune tentative comptée.
+  if (halted(r)) return { slug: idea.slug, stage: r.status, reason: `revue : ${r.status}` };
+  // Revue ratée : l'app part quand même à la porte, avec une revue bloquante.
   const review = normalizeReview(r.status === "ok" ? readJson(join(reviewDir, "review.json")) : null);
 
   // 4. Sortie : app acceptée + spec validée + revue normalisée.
   const out = join(base, "out");
-  copyAccepted(appDir, out, limits, NEVER_PUBLISHED);
+  const final = copyAccepted(appDir, out, limits, NEVER_PUBLISHED);
+  if (final.problems.length) return stop("build", b, `fichiers modifiés après la revue : ${final.problems.join(" ; ")}`);
   writeFileSync(join(out, "spec.json"), specText + "\n");
   writeFileSync(join(out, "review.json"), JSON.stringify(review, null, 2) + "\n");
   return { slug: idea.slug, stage: "done", reason: review.blocking.length ? "revue bloquante" : "prête pour la porte", runId: b.runId };
@@ -115,7 +123,18 @@ const isMain = import.meta.url === `file://${process.argv[1]}`;
 if (isMain) {
   const root = join(dirname(fileURLToPath(import.meta.url)), "..");
   const [stateDir = root, work = join(root, "work"), records] = process.argv.slice(2);
-  const outcome = runPipeline({ root, stateDir, work, records });
+  let outcome;
+  try {
+    outcome = runPipeline({ root, stateDir, work, records });
+  } catch (e) {
+    // Toujours écrire une sortie : sinon des lignes laissées par un agent dans $GITHUB_OUTPUT feraient foi.
+    let slug = "";
+    try {
+      slug = pickIdea(loadIdeas(root), readStates(stateDir), loadConfig(root).pipeline.maxAttempts)?.slug ?? "";
+    } catch {}
+    outcome = { slug, stage: "error", reason: `chaîne plantée : ${e.message}` };
+    process.exitCode = 1;
+  }
   console.log(JSON.stringify(outcome));
   if (process.env.GITHUB_OUTPUT) {
     const reason = String(outcome.reason ?? "").replace(/[\r\n]+/g, " ").slice(0, 500);

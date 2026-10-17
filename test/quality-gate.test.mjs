@@ -71,11 +71,45 @@ console.log(JSON.stringify({ wrote, net, key: process.env.ANTHROPIC_API_KEY ?? n
 writeFileSync("local.txt", "ok");`,
   });
   process.env.ANTHROPIC_API_KEY ??= "sk-ant-test-only";
-  const r = runSandboxed(dir, "node", ["probe.mjs"]);
+  const r = runSandboxed(dir, ["probe.mjs"]);
   assert.equal(r.status, 0, r.stderr);
   assert.deepEqual(JSON.parse(r.stdout), { wrote: "no", net: "no", key: null });
   assert.equal(existsSync(join(repo, "PWNED")), false);
   assert.equal(existsSync(join(dir, "local.txt")), false, "la copie est jetée, l'original intact");
+});
+
+test("sandbox : aucun socket Unix de l'hôte n'est joignable (Docker compris)", { skip: !SANDBOX && "bubblewrap absent" }, async () => {
+  const { createServer } = await import("node:net");
+  const sockDir = mkdtempSync(join(tmpdir(), "ff-sock-"));
+  const sock = join(sockDir, "host.sock");
+  let got = false;
+  const server = createServer((c) => c.on("data", () => (got = true)));
+  await new Promise((r) => server.listen(sock, r));
+  const dir = app({
+    "probe.mjs": `import { connect } from "node:net"; import { existsSync } from "node:fs";
+const seen = [${JSON.stringify(sock)}, "/var/run/docker.sock", "/run/docker.sock", "/home"].filter((p) => existsSync(p));
+const c = connect(${JSON.stringify(sock)}); c.on("error", () => { console.log(JSON.stringify({ seen, connected: false })); });
+c.on("connect", () => { c.write("x"); console.log(JSON.stringify({ seen, connected: true })); c.end(); });`,
+  });
+  const { spawn } = await import("node:child_process");
+  // runSandboxed est synchrone : on le lance dans un autre processus pour garder le serveur actif.
+  const child = spawn(process.execPath, ["-e", `import(${JSON.stringify(join(repo, "scripts/lib/sandbox.mjs"))}).then(m => process.stdout.write(m.runSandboxed(${JSON.stringify(dir)}, ["probe.mjs"]).stdout))`]);
+  let stdout = "";
+  child.stdout.on("data", (d) => (stdout += d));
+  await new Promise((r) => child.on("close", r));
+  server.close();
+  assert.deepEqual(JSON.parse(stdout), { seen: [], connected: false });
+  assert.equal(got, false);
+});
+
+test("API réseau, balise base et politique de sécurité propre refusées", () => {
+  for (const js of ["new WebSocket('wss://x')", "navigator.sendBeacon('/x')", "new RTCPeerConnection()", "new EventSource('/s')"]) {
+    assert.ok(checkSite(app({ "app.js": (j) => j + "\n" + js }), PUBLISHED).includes("API réseau interdite dans app.js"), js);
+  }
+  const csp = app({ "index.html": (h) => h.replace("<head>", `<head><meta http-equiv="Content-Security-Policy" content="default-src *">`) });
+  assert.ok(checkSite(csp, PUBLISHED).some((p) => p.startsWith("politique de sécurité propre interdite")));
+  const base = app({ "index.html": (h) => h.replace("<head>", `<head><base href="https://evil.example/">`) });
+  assert.ok(checkSite(base, PUBLISHED).includes("balise <base> interdite"));
 });
 
 test("chaque critère doit être vérifié par test.mjs", { skip: !SANDBOX && "bubblewrap absent" }, () => {
@@ -94,6 +128,15 @@ test("porte complète : verdict écrit, site publiable sans fichiers de travail"
   assert.deepEqual(gate.acceptanceSeen.sort(), ["AC-1", "AC-2"]);
   assert.ok(existsSync(join(out, "site", "index.html")));
   for (const f of ["spec.json", "review.json", "report.json"]) assert.equal(existsSync(join(out, "site", f)), false, f);
+  const { hasFactoryCsp } = await import("../scripts/lib/harden.mjs");
+  assert.ok(hasFactoryCsp(readFileSync(join(out, "site", "index.html"), "utf8")), "la page publiée porte la politique de l'usine");
+});
+
+test("porte : sandbox ou navigateur absents = panne, pas un refus de l'app", { skip: !SANDBOX && "bubblewrap absent" }, async () => {
+  const out = join(mkdtempSync(join(tmpdir(), "ff-verdict-")), "v");
+  const gate = await runGate(app(), out, repo, { browser: async () => ["navigateur indisponible : absent"] });
+  assert.equal(gate.passed, false);
+  assert.equal(gate.infra, true);
 });
 
 test("porte : spec trafiquée ou app refusée → pas de site publiable", async () => {
@@ -121,6 +164,18 @@ try {
   browserReady = true;
 } catch {}
 if (process.env.FF_REQUIRE_ALL && !browserReady) throw new Error("playwright requis en CI");
+
+test("navigateur réel : sous la politique de l'usine, une requête différée est bloquée", { skip: !browserReady && "playwright absent" }, async () => {
+  const { browserSmoke } = await import("../scripts/lib/browser-smoke.mjs");
+  const { harden } = await import("../scripts/lib/harden.mjs");
+  const dir = app({
+    "app.js": (j) => j + '\nif (typeof document !== "undefined") setTimeout(() => fetch("https://tracker.example/late").catch(() => {}), 1500);',
+  });
+  writeFileSync(join(dir, "index.html"), harden(readFileSync(join(dir, "index.html"), "utf8")));
+  const problems = await browserSmoke(dir);
+  assert.ok(problems.some((p) => p.includes("console") && /Content Security Policy|connect-src/i.test(p)), problems.join("\n"));
+  assert.ok(!problems.some((p) => p.includes("requête externe")), "la requête n'est même pas partie");
+});
 
 test("navigateur réel : app saine acceptée, requête externe et débordement refusés", { skip: !browserReady && "playwright absent" }, async () => {
   const { browserSmoke } = await import("../scripts/lib/browser-smoke.mjs");

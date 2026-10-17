@@ -24,6 +24,21 @@ test("go seulement si porte passée, revue sans blocage et au-dessus du seuil", 
   assert.equal(decide({ gate: PASS, review: null, config }).go, false);
 });
 
+test("un verdict mal formé n'est jamais un go", () => {
+  assert.equal(decide({ gate: { ...PASS, passed: "false" }, review: GOOD, config }).go, false);
+  assert.equal(decide({ gate: { ...PASS, passed: 1 }, review: GOOD, config }).go, false);
+  assert.equal(decide({ gate: { slug: "x", passed: true }, review: GOOD, config }).go, false);
+});
+
+test("panne d'infrastructure : aucune tentative consommée", () => {
+  const data = mkdtempSync(join(tmpdir(), "ff-data-"));
+  assert.equal(arbitrate({ root: repo, data, slug: "tirage-equipes", stage: "infra", now: NOW }).decision, "skip");
+  const v = verdictDir({ gate: { ...PASS, passed: false, infra: true, problems: ["test.mjs : sandbox indisponible"] } });
+  assert.equal(arbitrate({ root: repo, data, slug: "tirage-equipes", stage: "done", verdict: v, now: NOW }).decision, "skip");
+  assert.equal(existsSync(join(data, "factory", "apps", "tirage-equipes.json")), false);
+  assert.equal(arbitrate({ root: repo, data, slug: "tirage-equipes", stage: "error", reason: "plantage", now: NOW }).decision, "retry");
+});
+
 test("une revue ne peut pas imposer une app refusée par la porte", () => {
   const d = decide({ gate: { ...PASS, passed: false, problems: ["test.mjs échoue"] }, review: { score: 10, blocking: [], notes: [] }, config });
   assert.equal(d.go, false);
@@ -85,7 +100,7 @@ test("arbitrage : verdict d'une autre app, slug inconnu ou spec trafiquée refus
   assert.equal(arbitrate({ root: repo, data, slug: "tirage-equipes", stage: "done", verdict: verdictDir({ spec: bad }) }).decision, "retry");
 });
 
-test("catalogue : apps en ligne, pied de page légal, textes échappés", () => {
+test("catalogue : apps en ligne, pied de page légal, textes échappés", async () => {
   const data = mkdtempSync(join(tmpdir(), "ff-data-"));
   arbitrate({ root: repo, data, slug: "tirage-equipes", stage: "done", verdict: verdictDir(), now: NOW });
   // Une spec en ligne au nom piégé reste du texte.
@@ -103,9 +118,15 @@ test("catalogue : apps en ligne, pied de page légal, textes échappés", () => 
   assert.ok(appPage.includes('class="ff-legal"'));
   assert.ok(appPage.includes("Steeve Evers"));
   assert.ok(readFileSync(join(out, "mentions-legales.html"), "utf8").includes("GitHub, Inc."));
+  const { hasFactoryCsp } = await import("../scripts/lib/harden.mjs");
+  for (const f of ["index.html", "mentions-legales.html", "apps/tirage-equipes/index.html"]) assert.ok(hasFactoryCsp(readFileSync(join(out, f), "utf8")), f);
+  assert.ok(!appPage.includes("<style>"), "aucun style en ligne, interdit par la politique");
+  assert.ok(existsSync(join(out, "ff-legal.css")));
+  assert.equal(existsSync(join(out, "apps", "tirage-equipes", "test.mjs")), false);
 });
 
 test("pied de page inséré avant le dernier </body>", () => {
   assert.equal(injectFooter("<body>a</body>x</body>", "F"), "<body>a</body>xF</body>");
   assert.equal(injectFooter("<p>sans body</p>", "F"), "<p>sans body</p>F");
+  assert.equal(injectFooter("<body></body>", "$&$'"), "<body>$&$'</body>");
 });

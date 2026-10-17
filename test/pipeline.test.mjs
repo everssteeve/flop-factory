@@ -145,6 +145,26 @@ test("chaîne : revue ratée → l'app part à la porte avec une revue bloquante
   assert.deepEqual(review.blocking, ["revue absente ou illisible"]);
 });
 
+test("chaîne : revue sans budget → pas de verdict, aucune tentative comptée", () => {
+  const root = tempRoot();
+  const out = runPipeline({ root, stateDir: root, work: mkdtempSync(join(tmpdir(), "ff-work-")) }, { runAtelier: fakeAteliers({ fail: { review: "no-budget" } }).run });
+  assert.equal(out.stage, "no-budget");
+});
+
+test("chaîne : après escalateAfterFailures refus, spec et build passent au modèle d'escalade", () => {
+  const root = tempRoot();
+  mkdirSync(join(root, "factory", "apps"), { recursive: true });
+  const state = (attempts) => writeFileSync(join(root, "factory", "apps", "tirage-equipes.json"), JSON.stringify({ slug: "tirage-equipes", status: "building", attempts, history: [] }));
+  state(config.models.escalateAfterFailures - 1);
+  let fake = fakeAteliers();
+  runPipeline({ root, stateDir: root, work: mkdtempSync(join(tmpdir(), "ff-work-")) }, { runAtelier: fake.run });
+  assert.deepEqual(fake.calls.map((c) => c.model), [undefined, undefined, undefined]);
+  state(config.models.escalateAfterFailures);
+  fake = fakeAteliers();
+  runPipeline({ root, stateDir: root, work: mkdtempSync(join(tmpdir(), "ff-work-")) }, { runAtelier: fake.run });
+  assert.deepEqual(fake.calls.map((c) => c.model), [config.models.escalation, config.models.escalation, undefined]);
+});
+
 test("chaîne : plus rien à construire", () => {
   const root = tempRoot();
   mkdirSync(join(root, "factory", "apps"), { recursive: true });

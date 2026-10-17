@@ -18,6 +18,7 @@ import { loadIdeas, validateSpec } from "./lib/apps.mjs";
 import { collectFiles, copyAccepted, NEVER_PUBLISHED } from "./lib/site-files.mjs";
 import { runSandboxed } from "./lib/sandbox.mjs";
 import { normalizeReview } from "./pipeline.mjs";
+import { harden } from "./lib/harden.mjs";
 
 export const SECRET_PATTERNS = [
   { id: "anthropic", re: /sk-ant-[A-Za-z0-9_-]{10,}/ },
@@ -45,6 +46,9 @@ export function checkSite(dir, files) {
   for (const f of ["index.html", "style.css", "app.js", "test.mjs"]) if (!files.includes(f)) problems.push(`${f} manquant`);
   if (problems.length) return problems;
   const html = readFileSync(join(dir, "index.html"), "utf8");
+  if (!/<head(\s[^>]*)?>/i.test(html)) problems.push("pas de <head>");
+  if (/http-equiv\s*=\s*["']?content-security-policy/i.test(html)) problems.push("politique de sécurité propre interdite (l'usine impose la sienne)");
+  if (/<base\b/i.test(html)) problems.push("balise <base> interdite");
   if (!/<title>[^<]*\S[^<]*<\/title>/i.test(html)) problems.push("pas de <title>");
   if (!/<meta[^>]+name=["']viewport["']/i.test(html)) problems.push("pas de meta viewport");
   if (!/<html[^>]+lang=["']fr/i.test(html)) problems.push("langue de la page non déclarée en français");
@@ -56,13 +60,15 @@ export function checkSite(dir, files) {
     if (f.endsWith(".html") && EXTERNAL_TAG.test(text)) problems.push(`ressource externe dans ${f}`);
     if (f.endsWith(".css") && EXTERNAL_CSS.test(text)) problems.push(`ressource externe dans ${f}`);
     if (/document\.cookie/.test(text)) problems.push(`cookie dans ${f}`);
+    if (/\b(WebSocket|RTCPeerConnection|sendBeacon|EventSource|importScripts)\b/.test(text)) problems.push(`API réseau interdite dans ${f}`);
   }
   return problems;
 }
 
 /** Rejoue test.mjs en sandbox ; chaque critère doit afficher sa ligne `ok AC-n`. */
 export function checkAcceptance(dir, spec) {
-  const r = runSandboxed(dir, "node", ["test.mjs"]);
+  const r = runSandboxed(dir, ["test.mjs"]);
+  if (r.infra) return { problems: [`test.mjs : ${r.error}`], seen: [], infra: true };
   if (r.error) return { problems: [`test.mjs : ${r.error}`], seen: [] };
   const seen = [...new Set([...r.stdout.matchAll(/^ok (AC-\d+)\s*$/gm)].map((m) => m[1]))];
   const problems = [];
@@ -87,21 +93,30 @@ export async function runGate(appDir, outDir, root, { browser } = {}) {
   const { files, problems: fileProblems } = collectFiles(appDir, limits);
   problems.push(...fileProblems);
   let seen = [];
+  let infra = false;
   if (!fileProblems.length) {
     copyAccepted(appDir, site, limits, NEVER_PUBLISHED);
     const published = files.filter((f) => !NEVER_PUBLISHED.has(f));
     problems.push(...checkSite(site, published));
     for (const s of scanSecrets(site, published)) problems.push(`secret possible (${s.pattern}) dans ${s.file}`);
     if (!specProblems.length && !problems.length) {
+      // La page testée est celle qui sera publiée : politique de sécurité de l'usine comprise.
+      writeFileSync(join(site, "index.html"), harden(readFileSync(join(site, "index.html"), "utf8")));
       const acc = checkAcceptance(site, spec);
       seen = acc.seen;
+      infra = Boolean(acc.infra);
       problems.push(...acc.problems);
     }
-    if (!problems.length) problems.push(...(await (browser ?? (await import("./lib/browser-smoke.mjs")).browserSmoke)(site)));
+    if (!problems.length) {
+      const smoke = await (browser ?? (await import("./lib/browser-smoke.mjs")).browserSmoke)(site);
+      if (smoke.some((p) => p.startsWith("navigateur indisponible"))) infra = true;
+      problems.push(...smoke);
+    }
   }
 
   mkdirSync(outDir, { recursive: true });
-  const gate = { slug: idea.slug, passed: problems.length === 0, problems: problems.slice(0, 50), acceptanceSeen: seen };
+  // infra : la porte n'a pas pu juger (sandbox ou navigateur absents). L'arbitre ne compte pas la tentative.
+  const gate = { slug: idea.slug, passed: problems.length === 0, infra, problems: problems.slice(0, 50), acceptanceSeen: seen };
   writeFileSync(join(outDir, "gate.json"), JSON.stringify(gate, null, 2) + "\n");
   writeFileSync(join(outDir, "spec.json"), JSON.stringify(spec, null, 2) + "\n");
   writeFileSync(join(outDir, "review.json"), JSON.stringify(review, null, 2) + "\n");

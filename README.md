@@ -31,6 +31,8 @@ Chaque matin, le workflow [Usine](.github/workflows/usine.yml) fait avancer une 
 | Sujets | Une liste noire est injectée dans chaque run, car l'éditeur est une personne physique. | `factory/blocklist.json` |
 | Arrêt | Un fichier `STOP` à la racine arrête l'usine. | — |
 
+Chaque page publiée porte une politique de sécurité (CSP) posée par l'usine : aucun script ou style venu d'ailleurs, et `connect-src 'none'`, donc aucune donnée ne peut partir vers un serveur. La porte charge l'app sous cette même politique. Limites connues : les apps partagent une même origine (`everssteeve.github.io`), donc une app peut lire le `localStorage` d'une autre ; les lignes `ok AC-n` sont affichées par le test de l'agent lui-même, la revue et le navigateur servent de contre-poids, pas de preuve.
+
 Risque résiduel assumé : le processus Claude Code détient la clé API pour appeler le modèle. La sandbox et les hooks rendent son vol difficile, sans le rendre impossible. D'où une clé dédiée, dans un workspace dédié, avec une limite de dépense mensuelle posée dans la Console. C'est le seul plafond que rien dans ce dépôt ne peut contourner.
 
 ## Mise en route

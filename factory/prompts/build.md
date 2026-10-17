@@ -11,6 +11,8 @@ Fichiers à produire dans le dossier courant, sans framework ni dépendance, san
 - `app.js` : la logique. Sépare les fonctions de calcul (exportées, sans accès au DOM) du branchement à la page, pour qu'elles soient testables sous Node. Aucune erreur dans la console au chargement.
 - `test.mjs` : test Node sans dépendance (`node test.mjs`). Il importe les fonctions de `app.js` et lit `index.html` pour vérifier **chaque** critère d'acceptation. Pour chaque critère vérifié, il affiche une ligne `ok AC-n` (exactement, par exemple `ok AC-1`). Il sort avec le code 1 au premier échec.
 
+L'usine publie la page sous une politique de sécurité stricte (`script-src 'self'; style-src 'self'; connect-src 'none'`). Donc : aucun `<script>` ni `<style>` en ligne, aucun attribut `style="…"` ni `onclick="…"` (y compris dans du HTML généré par `innerHTML`), aucun `fetch`, WebSocket ou beacon. Utilise des classes CSS et `addEventListener`. Une violation est une erreur de console, et la porte refuse l'app.
+
 Pour que `app.js` s'importe sous Node, ne touche au DOM que si `typeof document !== "undefined"`.
 
 Lance `node test.mjs`. Corrige jusqu'à ce que toutes les lignes `ok AC-n` s'affichent et que le code de sortie soit 0. Ne modifie pas `spec.json`.

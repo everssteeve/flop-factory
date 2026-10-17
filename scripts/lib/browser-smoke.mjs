@@ -41,16 +41,23 @@ export async function browserSmoke(dir) {
   } catch (e) {
     return [`navigateur indisponible : ${e.message}`];
   }
+  let browser;
+  try {
+    // Sandbox de Chromium active hors root (cas des runners GitHub) ; Chromium la refuse sous root.
+    browser = await chromium.launch({ chromiumSandbox: process.getuid?.() !== 0 });
+  } catch (e) {
+    return [`navigateur indisponible : ${e.message.split("\n")[0]}`];
+  }
   const server = await serve(dir);
   const origin = `http://127.0.0.1:${server.address().port}`;
   const problems = [];
-  const browser = await chromium.launch();
   try {
     for (const width of [375, 1280]) {
       const page = await browser.newPage({ viewport: { width, height: 800 } });
       const errors = [];
       page.on("pageerror", (e) => errors.push(`erreur JS : ${e.message}`));
       page.on("console", (m) => m.type() === "error" && errors.push(`console : ${m.text()}`));
+      page.on("websocket", (ws) => errors.push(`WebSocket : ${ws.url().slice(0, 120)}`));
       await page.route("**/*", (route) => {
         const url = route.request().url();
         if (url.startsWith(origin + "/")) return route.continue();
@@ -62,7 +69,8 @@ export async function browserSmoke(dir) {
         return null;
       });
       if (resp && !resp.ok()) errors.push(`index.html : HTTP ${resp.status()}`);
-      await page.waitForTimeout(500);
+      // Laisse le temps aux requêtes différées de partir (et d'être vues).
+      await page.waitForTimeout(2500);
       const facts = await page
         .evaluate(() => ({
           title: document.title,

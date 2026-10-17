@@ -12,6 +12,7 @@ import { fileURLToPath } from "node:url";
 import { loadConfig } from "./lib/budget.mjs";
 import { readStates, escapeHtml as e } from "./lib/apps.mjs";
 import { copyAccepted } from "./lib/site-files.mjs";
+import { harden, CSP_META } from "./lib/harden.mjs";
 
 const CSS = `:root{color-scheme:light dark;--bg:#fafaf7;--fg:#1d1d1b;--muted:#5b5b57;--card:#fff;--line:#e2e2dc;--accent:#2f5d50}
 @media (prefers-color-scheme:dark){:root{--bg:#161615;--fg:#ededea;--muted:#a3a39d;--card:#1f1f1d;--line:#33332f;--accent:#8cc5b2}}
@@ -22,18 +23,19 @@ ul.apps a{display:block;height:100%;padding:16px;border:1px solid var(--line);bo
 ul.apps a:hover{border-color:var(--accent)}ul.apps strong{display:block;color:var(--accent)}ul.apps small{color:var(--muted)}
 footer{max-width:860px;margin:0 auto;padding:16px;color:var(--muted);font-size:.875rem}a{color:var(--accent)}`;
 
+// Fichier servi à la racine : la politique de sécurité interdit les styles en ligne.
 const FOOTER_CSS = `.ff-legal{margin:32px auto 0;padding:16px;max-width:860px;font:13px/1.5 system-ui,sans-serif;color:#6b6b66;text-align:center}.ff-legal a{color:inherit}`;
 
 function legalFooter(config, prefix) {
-  return `<footer class="ff-legal"><style>${FOOTER_CSS}</style>Publié par ${e(config.publisher.name)} · <a href="${prefix}mentions-legales.html">Mentions légales</a> · <a href="${prefix}index.html">Autres apps</a> · Construite et publiée sans intervention humaine</footer>`;
+  return `<link rel="stylesheet" href="${prefix}ff-legal.css"><footer class="ff-legal">Publié par ${e(config.publisher.name)} · <a href="${prefix}mentions-legales.html">Mentions légales</a> · <a href="${prefix}index.html">Autres apps</a> · Construite et publiée sans intervention humaine</footer>`;
 }
 
 export function injectFooter(html, footer) {
-  return /<\/body>/i.test(html) ? html.replace(/<\/body>(?![\s\S]*<\/body>)/i, `${footer}</body>`) : html + footer;
+  return /<\/body>/i.test(html) ? html.replace(/<\/body>(?![\s\S]*<\/body>)/i, () => `${footer}</body>`) : html + footer;
 }
 
 function page(title, body) {
-  return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${e(title)}</title><link rel="stylesheet" href="site.css"></head><body>${body}</body></html>\n`;
+  return `<!doctype html><html lang="fr"><head><meta charset="utf-8">${CSP_META}<meta name="viewport" content="width=device-width, initial-scale=1"><title>${e(title)}</title><link rel="stylesheet" href="site.css"></head><body>${body}</body></html>\n`;
 }
 
 export function assemble(root, data, out) {
@@ -49,7 +51,7 @@ export function assemble(root, data, out) {
     const { problems } = copyAccepted(join(data, "apps", s.slug), dest, config.pipeline, new Set(["test.mjs"]));
     if (problems.length) throw new Error(`${s.slug} : ${problems.join(" ; ")}`);
     const index = join(dest, "index.html");
-    writeFileSync(index, injectFooter(readFileSync(index, "utf8"), legalFooter(config, "../../")));
+    writeFileSync(index, injectFooter(harden(readFileSync(index, "utf8")), legalFooter(config, "../../")));
   }
 
   const items = live
@@ -77,6 +79,7 @@ export function assemble(root, data, out) {
     ),
   );
   writeFileSync(join(out, "site.css"), CSS + "\n");
+  writeFileSync(join(out, "ff-legal.css"), FOOTER_CSS + "\n");
   return live.map((s) => s.slug);
 }
 
