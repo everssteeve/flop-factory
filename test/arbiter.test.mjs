@@ -118,6 +118,7 @@ test("catalogue : apps en ligne, pied de page légal, textes échappés", async 
   assert.ok(appPage.includes('class="ff-legal"'));
   assert.ok(appPage.includes("Steeve Evers"));
   assert.ok(readFileSync(join(out, "mentions-legales.html"), "utf8").includes("GitHub, Inc."));
+  assert.ok(readFileSync(join(out, "mentions-legales.html"), "utf8").includes("Saint-Hilaire-de-Riez, France"));
   const { hasFactoryCsp } = await import("../scripts/lib/harden.mjs");
   for (const f of ["index.html", "mentions-legales.html", "apps/tirage-equipes/index.html"]) assert.ok(hasFactoryCsp(readFileSync(join(out, f), "utf8")), f);
   assert.ok(!appPage.includes("<style>"), "aucun style en ligne, interdit par la politique");

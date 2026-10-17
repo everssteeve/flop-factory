@@ -39,7 +39,8 @@
   },
   "publisher": {
     "name": "Steeve Evers",
-    "status": "personne physique"
+    "status": "personne physique",
+    "address": "Saint-Hilaire-de-Riez, France"
   },
   "pipeline": {
     "$comment": "Chaîne de build : une app par passage. L'arbitre est du code, jamais un modèle : la revue d'un modèle peut bloquer une app, jamais l'imposer.",
