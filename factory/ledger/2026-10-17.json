@@ -296,6 +296,46 @@
       "usd": 0.0044329,
       "status": "ok",
       "at": "2026-10-17T14:24:58.315Z"
+    },
+    {
+      "runId": "qualite-2026-10-17T17-07-05-455Z-7f86e24f",
+      "atelier": "qualite",
+      "model": "haiku",
+      "usd": 0.00048459999999999996,
+      "status": "ok",
+      "at": "2026-10-17T17:07:05.455Z"
+    },
+    {
+      "runId": "decouverte-2026-10-17T17-07-09-873Z-03330430",
+      "atelier": "decouverte",
+      "model": "haiku",
+      "usd": 0.000677775,
+      "status": "failed",
+      "at": "2026-10-17T17:07:09.873Z"
+    },
+    {
+      "runId": "build-2026-10-17T17-07-14-636Z-20339370",
+      "atelier": "build",
+      "model": "haiku",
+      "usd": 0.002375655,
+      "status": "ok",
+      "at": "2026-10-17T17:07:14.636Z"
+    },
+    {
+      "runId": "build-2026-10-17T17-07-31-454Z-38a6f511",
+      "atelier": "build",
+      "model": "haiku",
+      "usd": 0.013335625,
+      "status": "ok",
+      "at": "2026-10-17T17:07:31.454Z"
+    },
+    {
+      "runId": "qualite-2026-10-17T17-08-50-857Z-10084a29",
+      "atelier": "qualite",
+      "model": "haiku",
+      "usd": 0.0047564700000000005,
+      "status": "ok",
+      "at": "2026-10-17T17:08:50.857Z"
     }
   ]
 }

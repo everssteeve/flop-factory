@@ -1,0 +1,29 @@
+{
+  "runId": "build-2026-10-17T17-07-14-636Z-20339370",
+  "atelier": "build",
+  "prompt": "dist/prompts/spec-minuteur-pomodoro.md",
+  "model": "haiku",
+  "capUsd": 1.1156,
+  "remainingBeforeUsd": 2.2312,
+  "usd": 0.002375655,
+  "status": "ok",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 3,
+  "permissionDenials": [],
+  "report": {
+    "status": "ok",
+    "summary": "Spec écrite pour le minuteur Pomodoro : 4 fonctions, 7 critères d'acceptation comportementaux (durées 25/5/15 min, compteur du jour persisté dans localStorage avec remise à zéro quotidienne, pause, réinitialisation). Sujet hors liste interdite. Le son de fin de tranche est une fonction décrite mais non couverte par un critère, faute de test Node fiable ; la mise en page, le mobile et la console sont laissés aux contrôles de l'usine.",
+    "blockers": []
+  },
+  "stderrTail": ""
+}

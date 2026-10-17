@@ -1,0 +1,25 @@
+{
+  "runId": "decouverte-2026-10-17T17-07-09-873Z-03330430",
+  "atelier": "decouverte",
+  "prompt": "dist/prompts/discovery.md",
+  "model": "haiku",
+  "capUsd": 0.29,
+  "remainingBeforeUsd": 0.58,
+  "usd": 0.000677775,
+  "status": "failed",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 1,
+  "permissionDenials": [],
+  "report": null,
+  "stderrTail": ""
+}

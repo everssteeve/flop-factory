@@ -7,5 +7,8 @@
   "build:dist/prompts/spec-tirage-equipes.md": 0,
   "build:dist/prompts/build-tirage-equipes.md": 0,
   "build:dist/prompts/spec-checklist-valise.md": 0,
-  "build:dist/prompts/build-checklist-valise.md": 0
+  "build:dist/prompts/build-checklist-valise.md": 0,
+  "decouverte:dist/prompts/discovery.md": 1,
+  "build:dist/prompts/spec-minuteur-pomodoro.md": 0,
+  "build:dist/prompts/build-minuteur-pomodoro.md": 0
 }

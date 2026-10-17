@@ -1,0 +1,29 @@
+{
+  "runId": "qualite-2026-10-17T17-08-50-857Z-10084a29",
+  "atelier": "qualite",
+  "prompt": "factory/prompts/review.md",
+  "model": "haiku",
+  "capUsd": 0.4164,
+  "remainingBeforeUsd": 0.8328,
+  "usd": 0.0047564700000000005,
+  "status": "ok",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 4,
+  "permissionDenials": [],
+  "report": {
+    "status": "ok",
+    "summary": "Relecture qualité de minuteur-pomodoro : les 7 critères d'acceptation sont implémentés et vérifiés par node test.mjs (7/7 ok, exit 0). Aucun défaut bloquant. Score 8/10. Notes sur l'accessibilité (aria-live), la fiabilité du son selon l'autoplay, et une assertion HTML superflue dans AC-5.",
+    "blockers": []
+  },
+  "stderrTail": ""
+}

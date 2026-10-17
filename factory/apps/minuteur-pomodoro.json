@@ -1,0 +1,79 @@
+{
+  "slug": "minuteur-pomodoro",
+  "status": "live",
+  "attempts": 1,
+  "liveSince": "2026-10-17T17:10:08.115Z",
+  "history": [
+    {
+      "at": "2026-10-17T17:10:08.115Z",
+      "decision": "go",
+      "reasons": []
+    }
+  ],
+  "spec": {
+    "slug": "minuteur-pomodoro",
+    "name": "Minuteur Pomodoro",
+    "pitch": "Minuteur de travail par tranches de 25 minutes avec pauses, pour travailler par blocs concentrés sans rien installer.",
+    "problem": "On procrastine ou on s'épuise faute de rythme : travailler longtemps sans pause fatigue, et sans repère il est difficile de savoir combien de temps concentré on a réellement fait dans la journée.",
+    "audience": "Toute personne qui travaille seule sur ordinateur ou téléphone (étudiants, freelances, télétravailleurs) et veut un rythme simple de concentration.",
+    "features": [
+      "Démarrer, mettre en pause et réinitialiser une tranche de travail de 25 minutes, affichée en grand au format MM:SS.",
+      "Enchaîner automatiquement une pause courte de 5 minutes après chaque tranche, et une pause longue de 15 minutes après la quatrième tranche.",
+      "Jouer un son discret à la fin de chaque tranche ou pause.",
+      "Afficher le nombre de tranches terminées aujourd'hui, conservé dans le navigateur et remis à zéro chaque jour."
+    ],
+    "acceptance": [
+      {
+        "id": "AC-1",
+        "given": "le minuteur est à l'état initial, aucune tranche démarrée",
+        "when": "la page s'affiche",
+        "then": "l'affichage du minuteur indique exactement '25:00' et le compteur indique '0 tranche aujourd'hui'"
+      },
+      {
+        "id": "AC-2",
+        "given": "une tranche de travail est en cours avec 1 seconde restante",
+        "when": "le décompte atteint 0",
+        "then": "le minuteur passe en pause courte et affiche '05:00', et le compteur du jour passe de 0 à 1"
+      },
+      {
+        "id": "AC-3",
+        "given": "quatre tranches de travail ont été terminées dans la même journée",
+        "when": "la quatrième tranche se termine",
+        "then": "la pause suivante est une pause longue et affiche '15:00' au lieu de '05:00'"
+      },
+      {
+        "id": "AC-4",
+        "given": "une tranche de travail est en cours avec 1500 secondes restantes",
+        "when": "l'utilisateur active la pause puis attend 10 secondes simulées",
+        "then": "le temps restant affiché reste '25:00' tant que la tranche n'est pas relancée"
+      },
+      {
+        "id": "AC-5",
+        "given": "le compteur du jour vaut 3 dans le stockage local pour la date du jour",
+        "when": "la page est rechargée le même jour",
+        "then": "le compteur affiche '3 tranches aujourd'hui'"
+      },
+      {
+        "id": "AC-6",
+        "given": "le compteur du jour vaut 3 dans le stockage local pour la date de la veille",
+        "when": "la page est chargée le lendemain",
+        "then": "le compteur affiche '0 tranche aujourd'hui' et la valeur stockée pour aujourd'hui est 0"
+      },
+      {
+        "id": "AC-7",
+        "given": "le minuteur est à l'état initial",
+        "when": "l'utilisateur clique sur réinitialiser",
+        "then": "le minuteur revient à '25:00' en mode travail, sans modifier le compteur du jour"
+      }
+    ],
+    "outOfScope": [
+      "Compte utilisateur, synchronisation entre appareils ou sauvegarde en ligne",
+      "Historique détaillé, statistiques par semaine ou export des données",
+      "Tâches, listes de projets ou association d'une tranche à un sujet",
+      "Notifications système ou fonctionnement en arrière-plan quand l'onglet est fermé",
+      "Réglage personnalisé des durées ou des sons",
+      "Cookies, publicité, analyse d'audience ou requêtes vers un autre site"
+    ]
+  },
+  "measuredSince": "2026-10-17T17:10:08.160Z"
+}
