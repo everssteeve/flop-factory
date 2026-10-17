@@ -1,0 +1,31 @@
+{
+  "runId": "qualite-2026-10-17T13-26-05-718Z-bf3c9281",
+  "atelier": "qualite",
+  "prompt": "factory/prompts/review.md",
+  "model": "haiku",
+  "capUsd": 0.4336,
+  "remainingBeforeUsd": 0.8672,
+  "usd": 0.00442045,
+  "status": "ok",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 4,
+  "permissionDenials": [],
+  "report": {
+    "status": "ok",
+    "summary": "Revue de convertisseur-cuisine : les 8 critères d'acceptation sont implémentés et les conversions AC-1 à AC-7 sont vérifiées par node test.mjs (tests réussis). AC-8 (restauration depuis localStorage) n'est vérifié que par une recherche de sous-chaîne dans le source, et les messages d'erreur dans le DOM ne sont pas testés à l'exécution. Score 5, avec 1 défaut bloquant. Aucun contenu interdit, aucune ressource externe.",
+    "blockers": [
+      "AC-8 : test insuffisant (grep du source au lieu d'un test de comportement DOM) ; ajouter un test qui recharge la page simulée et vérifie que le champ personnes souhaitées vaut 6."
+    ]
+  },
+  "stderrTail": ""
+}

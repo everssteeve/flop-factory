@@ -1,7 +1,7 @@
 {
   "slug": "convertisseur-cuisine",
-  "status": "building",
-  "attempts": 2,
+  "status": "abandoned",
+  "attempts": 3,
   "liveSince": null,
   "history": [
     {
@@ -16,6 +16,14 @@
       "decision": "retry",
       "reasons": [
         "atelier build : run failed"
+      ]
+    },
+    {
+      "at": "2026-10-17T13:27:24.411Z",
+      "decision": "abandon",
+      "reasons": [
+        "revue : AC-8 non testé à l'exécution : test.mjs vérifie seulement que app.js contient la sous-chaîne \"el.desired.value = st.desired\" (contrôle par grep du source). La restauration du champ « personnes souhaitées » depuis localStorage au chargement de la page (fonction init) n'est jamais exécutée. Il",
+        "revue : score 5 < 6"
       ]
     }
   ]

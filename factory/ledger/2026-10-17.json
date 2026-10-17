@@ -72,6 +72,38 @@
       "usd": 0.01588131,
       "status": "failed",
       "at": "2026-10-17T13:19:18.816Z"
+    },
+    {
+      "runId": "qualite-2026-10-17T13-25-06-698Z-425a1a14",
+      "atelier": "qualite",
+      "model": "haiku",
+      "usd": 0.000278305,
+      "status": "ok",
+      "at": "2026-10-17T13:25:06.698Z"
+    },
+    {
+      "runId": "build-2026-10-17T13-25-11-466Z-4217304d",
+      "atelier": "build",
+      "model": "sonnet",
+      "usd": 0.0363537,
+      "status": "ok",
+      "at": "2026-10-17T13:25:11.466Z"
+    },
+    {
+      "runId": "build-2026-10-17T13-25-28-712Z-81be8818",
+      "atelier": "build",
+      "model": "sonnet",
+      "usd": 0.0790554,
+      "status": "ok",
+      "at": "2026-10-17T13:25:28.712Z"
+    },
+    {
+      "runId": "qualite-2026-10-17T13-26-05-718Z-bf3c9281",
+      "atelier": "qualite",
+      "model": "haiku",
+      "usd": 0.00442045,
+      "status": "ok",
+      "at": "2026-10-17T13:26:05.718Z"
     }
   ]
 }

@@ -1,0 +1,37 @@
+{
+  "runId": "build-2026-10-17T13-25-28-712Z-81be8818",
+  "atelier": "build",
+  "prompt": "dist/prompts/build-convertisseur-cuisine.md",
+  "model": "sonnet",
+  "capUsd": 1.2694,
+  "remainingBeforeUsd": 2.5388,
+  "usd": 0.0790554,
+  "status": "ok",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 3,
+  "permissionDenials": [
+    {
+      "tool_name": "Bash",
+      "tool_use_id": "toolu_015w8Ld2mUqe7c1wmMJKqeRo",
+      "tool_input": {
+        "command": "pwd; ls -a . .."
+      }
+    }
+  ],
+  "report": {
+    "status": "ok",
+    "summary": "App construite ; node test.mjs passe (AC-1 à AC-8).",
+    "blockers": []
+  },
+  "stderrTail": ""
+}

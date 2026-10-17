@@ -1,0 +1,29 @@
+{
+  "runId": "build-2026-10-17T13-25-11-466Z-4217304d",
+  "atelier": "build",
+  "prompt": "dist/prompts/spec-convertisseur-cuisine.md",
+  "model": "sonnet",
+  "capUsd": 1.2876,
+  "remainingBeforeUsd": 2.5752,
+  "usd": 0.0363537,
+  "status": "ok",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 2,
+  "permissionDenials": [],
+  "report": {
+    "status": "ok",
+    "summary": "spec.json écrite : convertisseur de cuisine, 4 fonctions, 8 critères.",
+    "blockers": []
+  },
+  "stderrTail": ""
+}
