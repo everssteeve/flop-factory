@@ -282,6 +282,8 @@ test("atelier Découverte : recherche web sans shell, et aucun autre jeu d'outil
   const args = claudeArgs({ ...base, tools: DISCOVERY_TOOLS });
   assert.equal(args[args.indexOf("--tools") + 1], "WebSearch,Read,Write");
   assert.ok(!args.join(" ").includes("Bash"));
+  assert.ok(!args.includes("--bare"), "WebSearch et Write n'existent pas en --bare");
+  assert.ok(claudeArgs(base).includes("--bare"), "les runs avec shell restent en --bare");
   assert.throws(() => claudeArgs({ ...base, tools: "Bash,WebFetch" }), /non prévu/);
   const settings = JSON.parse(readFileSync(join(repo, "harness", "overlay", "run-settings-discovery.json"), "utf8"));
   assert.ok(settings.permissions.deny.includes("WebFetch"));

@@ -18,10 +18,14 @@ export function claudeArgs({ prompt, model, capUsd, maxTurns, pluginDir, rulesFi
   if (!(capUsd > 0)) throw new Error("un run doit avoir un plafond de dépense positif");
   if (!(maxTurns > 0)) throw new Error("un run doit avoir un nombre de tours maximum");
   if (!settingsFile) throw new Error("un run doit avoir ses réglages de sandbox");
+  // --bare ne propose que Bash, Edit et Read (vérifié sur 2.1.302) : la recherche
+  // web et Write n'existent qu'hors --bare. Seul l'atelier Découverte, qui n'a pas
+  // de shell, tourne ainsi ; son HOME est celui, vierge, du runner.
+  const bare = tools === DISCOVERY_TOOLS ? [] : ["--bare"];
   return [
     "-p",
     prompt,
-    "--bare",
+    ...bare,
     "--output-format",
     "stream-json",
     "--verbose",

@@ -163,6 +163,7 @@ export function runAtelier(opts, { root, now = new Date(), spawn = spawnSync, en
     plugins: (init?.plugins ?? []).map((p) => p?.name),
     // Outils réellement offerts au modèle et sa dernière réponse : de quoi comprendre un run qui n'a rien fait.
     tools: (init?.tools ?? []).map((t) => String(t)).slice(0, 50),
+    missingTools: init ? profile.tools.split(",").filter((t) => !(init.tools ?? []).includes(t)) : null,
     resultText: typeof result?.result === "string" ? result.result.slice(0, 2000) : null,
     pluginErrors: init?.plugin_errors ?? [],
     timedOut: proc.error?.code === "ETIMEDOUT",
