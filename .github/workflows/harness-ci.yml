@@ -14,13 +14,25 @@ permissions:
 jobs:
   tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      # Sans sandbox ni navigateur, les tests de la porte seraient sautés : on les installe.
+      - name: Sandbox et navigateur
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq bubblewrap
+          if [ -f /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          fi
+          npm install --no-save --ignore-scripts playwright@1.56.0
+          npx playwright install --with-deps chromium
       - name: Tests de l'usine
+        env:
+          FF_REQUIRE_ALL: "1"
         run: node --test test/*.test.mjs
       - name: Tests des garde-fous amont
         run: node harness/upstream/hooks/test-hooks.mjs

@@ -1,11 +1,23 @@
 #!/usr/bin/env node
-// Porte qualité de la phase Socle, exécutée par le workflow et non par l'agent.
-//   node scripts/quality-gate.mjs work/hello
-// Sortie 1 au premier contrôle qui échoue.
+// Porte qualité, exécutée par le workflow sur un checkout neuf, jamais par
+// l'agent. Elle ne croit ni son rapport ni sa revue : elle revalide la spec,
+// contrôle les fichiers, rejoue test.mjs en sandbox et charge l'app dans un
+// navigateur. Elle ne décide pas de la publication : l'arbitre le fait.
+//
+//   node scripts/quality-gate.mjs <app-dir> <out-dir>
+//
+// <app-dir> : sortie de la chaîne (fichiers de l'app, spec.json, review.json).
+// <out-dir> : gate.json, spec.json, review.json et site/ (fichiers publiables).
+// Sortie 0 dès que gate.json est écrit, même si l'app est refusée.
 
-import { spawnSync } from "node:child_process";
-import { readdirSync, readFileSync, statSync, existsSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync } from "node:fs";
+import { join, resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import { loadConfig } from "./lib/budget.mjs";
+import { loadIdeas, validateSpec } from "./lib/apps.mjs";
+import { collectFiles, copyAccepted, NEVER_PUBLISHED } from "./lib/site-files.mjs";
+import { runSandboxed } from "./lib/sandbox.mjs";
+import { normalizeReview } from "./pipeline.mjs";
 
 export const SECRET_PATTERNS = [
   { id: "anthropic", re: /sk-ant-[A-Za-z0-9_-]{10,}/ },
@@ -15,57 +27,92 @@ export const SECRET_PATTERNS = [
   { id: "aws", re: /\bAKIA[0-9A-Z]{16}\b/ },
 ];
 
-function* files(dir) {
-  for (const name of readdirSync(dir)) {
-    if (name === "node_modules" || name === ".git") continue;
-    const p = join(dir, name);
-    if (statSync(p).isDirectory()) yield* files(p);
-    else yield p;
-  }
-}
-
-export function scanSecrets(dir) {
+export function scanSecrets(dir, files) {
   const hits = [];
-  for (const p of files(dir)) {
-    const text = readFileSync(p, "utf8");
-    for (const { id, re } of SECRET_PATTERNS) if (re.test(text)) hits.push({ file: p, pattern: id });
+  for (const f of files) {
+    const text = readFileSync(join(dir, f), "utf8");
+    for (const { id, re } of SECRET_PATTERNS) if (re.test(text)) hits.push({ file: f, pattern: id });
   }
   return hits;
 }
 
-export function checkSite(dir) {
+const EXTERNAL_TAG = /<(script|link|img|iframe|source|video|audio|embed|object|form)\b[^>]*\b(src|href|action|data)\s*=\s*["']?\s*(https?:)?\/\//i;
+const EXTERNAL_CSS = /(@import|url\()\s*["']?\s*(https?:)?\/\//i;
+
+/** Contrôles statiques des fichiers publiables. */
+export function checkSite(dir, files) {
   const problems = [];
-  for (const f of ["index.html", "style.css", "test.mjs"]) {
-    if (!existsSync(join(dir, f))) problems.push(`${f} manquant`);
-  }
+  for (const f of ["index.html", "style.css", "app.js", "test.mjs"]) if (!files.includes(f)) problems.push(`${f} manquant`);
   if (problems.length) return problems;
   const html = readFileSync(join(dir, "index.html"), "utf8");
-  if (!/<title>[^<]+<\/title>/i.test(html)) problems.push("pas de <title>");
+  if (!/<title>[^<]*\S[^<]*<\/title>/i.test(html)) problems.push("pas de <title>");
   if (!/<meta[^>]+name=["']viewport["']/i.test(html)) problems.push("pas de meta viewport");
-  if (!/href=["']style\.css["']/i.test(html)) problems.push("style.css non lié");
+  if (!/<html[^>]+lang=["']fr/i.test(html)) problems.push("langue de la page non déclarée en français");
+  if (!/href=["']\.?\/?style\.css["']/i.test(html)) problems.push("style.css non lié");
+  if (!/<script[^>]+src=["']\.?\/?app\.js["']/i.test(html)) problems.push("app.js non chargé");
   if (/localhost|127\.0\.0\.1/i.test(html)) problems.push("lien localhost dans la page");
-  if (/<script[^>]+src=["']https?:/i.test(html)) problems.push("script externe interdit");
+  for (const f of files) {
+    const text = readFileSync(join(dir, f), "utf8");
+    if (f.endsWith(".html") && EXTERNAL_TAG.test(text)) problems.push(`ressource externe dans ${f}`);
+    if (f.endsWith(".css") && EXTERNAL_CSS.test(text)) problems.push(`ressource externe dans ${f}`);
+    if (/document\.cookie/.test(text)) problems.push(`cookie dans ${f}`);
+  }
   return problems;
+}
+
+/** Rejoue test.mjs en sandbox ; chaque critère doit afficher sa ligne `ok AC-n`. */
+export function checkAcceptance(dir, spec) {
+  const r = runSandboxed(dir, "node", ["test.mjs"]);
+  if (r.error) return { problems: [`test.mjs : ${r.error}`], seen: [] };
+  const seen = [...new Set([...r.stdout.matchAll(/^ok (AC-\d+)\s*$/gm)].map((m) => m[1]))];
+  const problems = [];
+  if (r.status !== 0) problems.push(`test.mjs échoue (code ${r.status}) : ${(r.stderr || r.stdout).slice(-400)}`);
+  for (const a of spec.acceptance) if (!seen.includes(a.id)) problems.push(`critère ${a.id} non vérifié par test.mjs`);
+  return { problems, seen };
+}
+
+export async function runGate(appDir, outDir, root, { browser } = {}) {
+  const config = loadConfig(root);
+  const limits = config.pipeline;
+  const problems = [];
+  const spec = JSON.parse(readFileSync(join(appDir, "spec.json"), "utf8"));
+  const idea = loadIdeas(root).find((i) => i.slug === spec?.slug);
+  if (!idea) throw new Error(`app inconnue de factory/ideas.json : ${spec?.slug}`);
+  const specProblems = validateSpec(spec, idea, config);
+  if (specProblems.length) problems.push(...specProblems.map((p) => `spec : ${p}`));
+  const review = normalizeReview(existsSync(join(appDir, "review.json")) ? JSON.parse(readFileSync(join(appDir, "review.json"), "utf8")) : null);
+
+  rmSync(outDir, { recursive: true, force: true });
+  const site = join(outDir, "site");
+  const { files, problems: fileProblems } = collectFiles(appDir, limits);
+  problems.push(...fileProblems);
+  let seen = [];
+  if (!fileProblems.length) {
+    copyAccepted(appDir, site, limits, NEVER_PUBLISHED);
+    const published = files.filter((f) => !NEVER_PUBLISHED.has(f));
+    problems.push(...checkSite(site, published));
+    for (const s of scanSecrets(site, published)) problems.push(`secret possible (${s.pattern}) dans ${s.file}`);
+    if (!specProblems.length && !problems.length) {
+      const acc = checkAcceptance(site, spec);
+      seen = acc.seen;
+      problems.push(...acc.problems);
+    }
+    if (!problems.length) problems.push(...(await (browser ?? (await import("./lib/browser-smoke.mjs")).browserSmoke)(site)));
+  }
+
+  mkdirSync(outDir, { recursive: true });
+  const gate = { slug: idea.slug, passed: problems.length === 0, problems: problems.slice(0, 50), acceptanceSeen: seen };
+  writeFileSync(join(outDir, "gate.json"), JSON.stringify(gate, null, 2) + "\n");
+  writeFileSync(join(outDir, "spec.json"), JSON.stringify(spec, null, 2) + "\n");
+  writeFileSync(join(outDir, "review.json"), JSON.stringify(review, null, 2) + "\n");
+  if (!gate.passed) rmSync(site, { recursive: true, force: true });
+  return gate;
 }
 
 const isMain = import.meta.url === `file://${process.argv[1]}`;
 if (isMain) {
-  const dir = resolve(process.argv[2] ?? ".");
-  const report = JSON.parse(readFileSync(join(dir, "report.json"), "utf8"));
-  if (report.status !== "ok") {
-    console.error(`rapport de l'agent : ${report.status}`);
-    process.exit(1);
-  }
-  const problems = checkSite(dir);
-  const secrets = scanSecrets(dir);
-  for (const s of secrets) problems.push(`secret possible (${s.pattern}) dans ${s.file}`);
-  if (!problems.length) {
-    const t = spawnSync("node", ["test.mjs"], { cwd: dir, encoding: "utf8", timeout: 60_000, env: { PATH: process.env.PATH } });
-    if (t.status !== 0) problems.push(`test.mjs échoue : ${(t.stderr || t.stdout).slice(-500)}`);
-  }
-  if (problems.length) {
-    console.error("Porte qualité refusée :\n- " + problems.join("\n- "));
-    process.exit(1);
-  }
-  console.log("Porte qualité : ok");
+  const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+  const [appDir, outDir] = process.argv.slice(2).map((p) => resolve(p));
+  const gate = await runGate(appDir, outDir, root);
+  console.log(gate.passed ? `Porte qualité : ok (${gate.slug})` : `Porte qualité refusée (${gate.slug}) :\n- ${gate.problems.join("\n- ")}`);
 }

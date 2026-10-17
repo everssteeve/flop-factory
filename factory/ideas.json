@@ -1,0 +1,21 @@
+{
+  "$comment": "Idées à construire, dans l'ordre. Phase 2 : liste posée à la main. Phase 3 : alimentée par l'atelier Découverte, toujours via PR. Une idée = une app statique, sans compte ni serveur, utilisable en une minute.",
+  "ideas": [
+    {
+      "slug": "convertisseur-cuisine",
+      "idea": "Convertir les mesures d'une recette (tasses, cuillères, onces, grammes, millilitres, degrés Fahrenheit et Celsius) et ajuster les quantités au nombre de personnes."
+    },
+    {
+      "slug": "tirage-equipes",
+      "idea": "Coller une liste de prénoms et la répartir au hasard en équipes équilibrées, avec un nombre d'équipes ou une taille d'équipe au choix, puis copier le résultat."
+    },
+    {
+      "slug": "checklist-valise",
+      "idea": "Générer une liste de choses à emporter en voyage selon la durée, la saison et le type de séjour, à cocher, conservée dans le navigateur."
+    },
+    {
+      "slug": "minuteur-pomodoro",
+      "idea": "Minuteur de travail par tranches de 25 minutes avec pauses, son discret en fin de tranche et compteur de tranches du jour conservé dans le navigateur."
+    }
+  ]
+}

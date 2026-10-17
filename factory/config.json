@@ -9,8 +9,8 @@
       "build": 0.45,
       "qualite": 0.15,
       "cerveau": 0.15,
-      "decouverte": 0.10,
-      "gtm": 0.10,
+      "decouverte": 0.1,
+      "gtm": 0.1,
       "run": 0.05
     },
     "perRunCapShare": 0.5,
@@ -40,5 +40,25 @@
   "publisher": {
     "name": "Steeve Evers",
     "status": "personne physique"
+  },
+  "pipeline": {
+    "$comment": "Chaîne de build : une app par passage. L'arbitre est du code, jamais un modèle : la revue d'un modèle peut bloquer une app, jamais l'imposer.",
+    "maxAttempts": 3,
+    "reviewMinScore": 6,
+    "maxFeatures": 5,
+    "maxAcceptance": 8,
+    "maxSiteBytes": 524288,
+    "allowedExtensions": [
+      ".html",
+      ".css",
+      ".js",
+      ".mjs",
+      ".json",
+      ".svg",
+      ".txt"
+    ],
+    "buildMaxTurns": 60,
+    "specMaxTurns": 15,
+    "reviewMaxTurns": 20
   }
 }

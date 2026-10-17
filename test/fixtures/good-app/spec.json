@@ -1,0 +1,12 @@
+{
+  "slug": "tirage-equipes",
+  "name": "Tirage d'équipes",
+  "pitch": "Répartir une liste de prénoms en équipes au hasard, en un clic.",
+  "problem": "Faire des équipes équitables à la main prend du temps et paraît partial.",
+  "audience": "Animateurs, enseignants, sportifs du dimanche.",
+  "features": ["Coller des prénoms et choisir le nombre d'équipes", "Tirer au sort des équipes équilibrées"],
+  "acceptance": [
+    { "id": "AC-1", "given": "4 prénoms", "when": "on demande 2 équipes", "then": "2 équipes de 2 prénoms" },
+    { "id": "AC-2", "given": "la page", "when": "elle se charge", "then": "un bouton de tirage est présent" }
+  ]
+}

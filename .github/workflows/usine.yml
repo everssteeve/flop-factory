@@ -1,14 +1,17 @@
 name: Usine
 
-# Run quotidien de la phase Socle, sans humain dans la boucle.
+# Run quotidien de la chaîne de build, sans humain dans la boucle : une app par
+# passage, de l'idée à la mise en ligne.
 #
 # Quatre jobs, pour que rien de ce que l'agent écrit ne s'exécute avec un droit :
-#   agent    : clé API seule, sandbox OS pour Bash, aucun jeton git. Produit deux
-#              artefacts : le site (non fiable) et les enregistrements de coût.
-#   gate     : checkout neuf, lecture seule. Valide le site sans croire l'agent.
-#   deploy   : publie sur GitHub Pages ce que la porte a validé, puis contrôle.
-#   records  : checkout neuf, seul job qui écrit dans le dépôt. Valide puis
-#              fusionne le ledger et les journaux.
+#   agent    : clé API seule, sandbox OS pour Bash, aucun jeton git. Choisit
+#              l'idée, enchaîne spec → build → revue. Produit l'app (non fiable)
+#              et les enregistrements de coût.
+#   gate     : checkout neuf, lecture seule. Revalide la spec, contrôle les
+#              fichiers, rejoue les tests en sandbox, charge l'app dans un navigateur.
+#   records  : seul job qui écrit, sur la branche data. Valide le ledger, puis
+#              l'arbitre (du code) décide go / retry / abandon.
+#   deploy   : sur go, assemble le catalogue depuis data et publie sur Pages.
 #
 # Secret requis : ANTHROPIC_API_KEY. Prérequis : Settings > Pages > Source = GitHub Actions.
 
@@ -26,13 +29,16 @@ permissions:
 
 env:
   CLAUDE_CODE_VERSION: "2.1.302"
+  PLAYWRIGHT_VERSION: "1.56.0"
 
 jobs:
   agent:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 150
     outputs:
-      status: ${{ steps.run.outputs.status }}
+      slug: ${{ steps.run.outputs.slug }}
+      stage: ${{ steps.run.outputs.stage }}
+      reason: ${{ steps.run.outputs.reason }}
       leak: ${{ steps.leak.outputs.leak }}
     steps:
       - uses: actions/checkout@v4
@@ -42,11 +48,12 @@ jobs:
         with:
           node-version: 22
 
-      # Le ledger vit sur la branche data : on y lit les dépenses du jour.
-      - name: Charger le ledger
+      # La branche data porte les dépenses du jour et l'état des apps.
+      - name: Charger les données
         run: |
           if git fetch --depth 1 origin data 2>/dev/null; then
-            git checkout FETCH_HEAD -- factory/ledger factory/runs 2>/dev/null || true
+            git checkout FETCH_HEAD -- factory/ledger factory/runs factory/apps 2>/dev/null || \
+              git checkout FETCH_HEAD -- factory/ledger factory/runs 2>/dev/null || true
           fi
 
       - name: Arrêt d'urgence
@@ -78,14 +85,12 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: node scripts/guard-smoke.mjs "$WORK/guard-smoke" "$RECORDS"
 
-      - name: Atelier Build — app de test
+      - name: Chaîne de build — idée, spec, build, revue
         id: run
         if: steps.stop.outputs.stopped != 'true'
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: |
-          node scripts/run-atelier.mjs --atelier build --prompt factory/prompts/socle-hello.md \
-            --workdir "$WORK/hello" --records "$RECORDS"
+        run: node scripts/pipeline.mjs . "$WORK/apps" "$RECORDS"
 
       - name: Arrêter les processus laissés par l'agent
         if: always() && steps.stop.outputs.stopped != 'true'
@@ -93,21 +98,18 @@ jobs:
 
       - name: Recherche de fuite de la clé
         id: leak
-        if: steps.run.outputs.status == 'ok'
+        if: steps.run.outputs.stage == 'done'
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          SLUG: ${{ steps.run.outputs.slug }}
         run: |
-          if node scripts/leak-check.mjs "$WORK/hello"; then echo "leak=none" >> "$GITHUB_OUTPUT"; else echo "leak=found" >> "$GITHUB_OUTPUT"; exit 1; fi
+          if node scripts/leak-check.mjs "$WORK/apps/$SLUG"; then echo "leak=none" >> "$GITHUB_OUTPUT"; else echo "leak=found" >> "$GITHUB_OUTPUT"; exit 1; fi
 
       - uses: actions/upload-artifact@v4
         if: steps.leak.outputs.leak == 'none'
         with:
-          name: site
-          path: |
-            ${{ runner.temp }}/ff-work/hello/index.html
-            ${{ runner.temp }}/ff-work/hello/style.css
-            ${{ runner.temp }}/ff-work/hello/test.mjs
-            ${{ runner.temp }}/ff-work/hello/report.json
+          name: app
+          path: ${{ runner.temp }}/ff-work/apps/${{ steps.run.outputs.slug }}/out
           if-no-files-found: error
           retention-days: 7
 
@@ -121,9 +123,9 @@ jobs:
 
   gate:
     needs: agent
-    if: needs.agent.outputs.status == 'ok' && needs.agent.outputs.leak == 'none'
+    if: needs.agent.outputs.stage == 'done' && needs.agent.outputs.leak == 'none'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
@@ -131,52 +133,38 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Sandbox et navigateur
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq bubblewrap
+          if [ -f /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          fi
+          npm install --no-save --ignore-scripts "playwright@${PLAYWRIGHT_VERSION}"
+          npx playwright install --with-deps chromium
       - uses: actions/download-artifact@v4
         with:
-          name: site
-          path: ${{ runner.temp }}/site
-      # La porte est exécutée par le workflow : un rapport « ok » de l'agent ne suffit jamais.
+          name: app
+          path: ${{ runner.temp }}/app
+      # La porte est exécutée par le workflow : le rapport et la revue de l'agent ne suffisent jamais.
       - name: Porte qualité
-        run: node scripts/quality-gate.mjs "$RUNNER_TEMP/site"
-      - name: Préparer la publication
-        run: |
-          mkdir -p "$RUNNER_TEMP/public"
-          cp "$RUNNER_TEMP/site/index.html" "$RUNNER_TEMP/site/style.css" "$RUNNER_TEMP/public/"
-      - uses: actions/upload-pages-artifact@v3
+        run: node scripts/quality-gate.mjs "$RUNNER_TEMP/app" "$RUNNER_TEMP/verdict"
+      - uses: actions/upload-artifact@v4
         with:
-          path: ${{ runner.temp }}/public
-
-  deploy:
-    needs: gate
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.pages.outputs.page_url }}
-    steps:
-      - id: pages
-        uses: actions/deploy-pages@v4
-      - name: Contrôle en ligne
-        env:
-          URL: ${{ steps.pages.outputs.page_url }}
-        run: |
-          for i in 1 2 3 4 5 6; do
-            if curl -fsS "$URL" | grep -q "<title>"; then echo "En ligne : $URL"; exit 0; fi
-            sleep 10
-          done
-          echo "La page publiée ne répond pas correctement." >&2
-          exit 1
+          name: verdict
+          path: ${{ runner.temp }}/verdict
+          if-no-files-found: error
+          retention-days: 7
 
   records:
-    needs: agent
+    needs: [agent, gate]
     if: always() && needs.agent.result != 'skipped'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
       contents: write
+    outputs:
+      decision: ${{ steps.arbiter.outputs.decision }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -189,6 +177,12 @@ jobs:
         with:
           name: records
           path: ${{ runner.temp }}/records
+      - uses: actions/download-artifact@v4
+        if: needs.gate.result == 'success'
+        continue-on-error: true
+        with:
+          name: verdict
+          path: ${{ runner.temp }}/verdict
       # main est protégée (PR + revue) : les données de l'usine vont sur la
       # branche data, que le bot peut écrire sans toucher au code ni aux garde-fous.
       - name: Ouvrir la branche data
@@ -204,8 +198,20 @@ jobs:
             git worktree add --orphan -b data "$DATA"
           fi
           echo "DATA=$DATA" >> "$GITHUB_ENV"
-      - name: Valider et fusionner
+      - name: Valider et fusionner le ledger
         run: node scripts/merge-records.mjs "$RUNNER_TEMP/records"
+      - name: Arbitre go / no-go
+        id: arbiter
+        if: needs.agent.outputs.slug != ''
+        env:
+          SLUG: ${{ needs.agent.outputs.slug }}
+          STAGE: ${{ needs.agent.outputs.stage }}
+          REASON: ${{ needs.agent.outputs.reason }}
+          GATE: ${{ needs.gate.result }}
+        run: |
+          # Une app sortie de la chaîne mais qui n'a pas de verdict (fuite, porte plantée) est un échec.
+          if [ "$STAGE" = "done" ] && [ "$GATE" != "success" ]; then STAGE=build; REASON="porte non passée ($GATE)"; fi
+          node scripts/arbiter.mjs "$DATA" --slug "$SLUG" --stage "$STAGE" --reason "$REASON" --verdict "$RUNNER_TEMP/verdict"
       - name: Commiter sur data
         run: |
           mkdir -p "$DATA/factory"
@@ -214,7 +220,49 @@ jobs:
           cd "$DATA"
           git config user.name "flop-factory-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add factory/ledger factory/runs
+          git add factory
+          [ -d apps ] && git add apps
           if git diff --cached --quiet; then echo "rien à commiter"; exit 0; fi
-          git commit -m "usine: ledger et journaux du $(TZ=Europe/Paris date +%F)"
+          git commit -m "usine: données du $(TZ=Europe/Paris date +%F)"
           git push origin HEAD:data
+
+  deploy:
+    needs: [agent, records]
+    if: needs.records.outputs.decision == 'go'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.pages.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Assembler le catalogue
+        run: |
+          git fetch --depth 1 origin data
+          git worktree add "$RUNNER_TEMP/data" FETCH_HEAD
+          node scripts/assemble-site.mjs "$RUNNER_TEMP/data" "$RUNNER_TEMP/public"
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ runner.temp }}/public
+      - id: pages
+        uses: actions/deploy-pages@v4
+      - name: Contrôle en ligne
+        env:
+          URL: ${{ steps.pages.outputs.page_url }}
+          SLUG: ${{ needs.agent.outputs.slug }}
+        run: |
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            if curl -fsS "${URL}apps/${SLUG}/" | grep -q "ff-legal"; then echo "En ligne : ${URL}apps/${SLUG}/"; exit 0; fi
+            sleep 15
+          done
+          echo "L'app publiée ne répond pas correctement." >&2
+          exit 1
