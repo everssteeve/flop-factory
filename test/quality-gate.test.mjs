@@ -115,6 +115,9 @@ test("API réseau, balise base et politique de sécurité propre refusées", () 
   for (const js of ["new WebSocket('wss://x')", "navigator.sendBeacon('/x')", "new RTCPeerConnection()", "new EventSource('/s')"]) {
     assert.ok(checkSite(app({ "app.js": (j) => j + "\n" + js }), PUBLISHED).includes("API réseau interdite dans app.js"), js);
   }
+  // Le test peut vérifier l'absence de ces API sans être refusé.
+  const guardTest = app({ "test.mjs": (t) => t + '\nif (/WebSocket|sendBeacon|document\\.cookie/.test("")) process.exit(1);' });
+  assert.deepEqual(checkSite(guardTest, PUBLISHED), []);
   const csp = app({ "index.html": (h) => h.replace("<head>", `<head><meta http-equiv="Content-Security-Policy" content="default-src *">`) });
   assert.ok(checkSite(csp, PUBLISHED).some((p) => p.startsWith("politique de sécurité propre interdite")));
   const base = app({ "index.html": (h) => h.replace("<head>", `<head><base href="https://evil.example/">`) });
