@@ -1,0 +1,29 @@
+{
+  "runId": "qualite-2026-10-17T14-24-58-315Z-1a7ab950",
+  "atelier": "qualite",
+  "prompt": "factory/prompts/review.md",
+  "model": "haiku",
+  "capUsd": 0.4189,
+  "remainingBeforeUsd": 0.8377,
+  "usd": 0.0044329,
+  "status": "ok",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 4,
+  "permissionDenials": [],
+  "report": {
+    "status": "ok",
+    "summary": "Revue de Checklist Valise terminée. Les six critères d'acceptation AC-1 à AC-6 sont implémentés et vérifiés par test.mjs (node test.mjs passe). Aucun défaut bloquant. Score 8/10. Remarques non bloquantes : incohérence entre l'affichage et le localStorage après une saisie invalide, réinitialisation sans confirmation, débordement à 375 px et 1280 px à confirmer dans le navigateur.",
+    "blockers": []
+  },
+  "stderrTail": ""
+}

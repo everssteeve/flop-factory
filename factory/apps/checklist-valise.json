@@ -1,8 +1,8 @@
 {
   "slug": "checklist-valise",
-  "status": "building",
-  "attempts": 1,
-  "liveSince": null,
+  "status": "live",
+  "attempts": 2,
+  "liveSince": "2026-10-17T14:26:11.780Z",
   "history": [
     {
       "at": "2026-10-17T14:21:19.071Z",
@@ -12,6 +12,69 @@
         "revue : AC-4 : test.mjs contrôle seulement l'aller-retour saveList/loadList en mémoire. La branche initApp qui relit le stockage au chargement et restaure les cases (render) n'est jamais exercée, donc le rechargement de page n'est pas testé.",
         "revue : score 5 < 6"
       ]
+    },
+    {
+      "at": "2026-10-17T14:26:11.780Z",
+      "decision": "go",
+      "reasons": []
     }
-  ]
+  ],
+  "spec": {
+    "slug": "checklist-valise",
+    "name": "Checklist Valise",
+    "pitch": "Génère ta liste de valise selon la durée, la saison et le type de séjour, à cocher et gardée dans ton navigateur.",
+    "problem": "Préparer une valise oublie souvent des affaires essentielles, et une liste générique ne tient compte ni de la durée du séjour ni de la météo attendue.",
+    "audience": "Voyageurs particuliers qui partent en week-end, en vacances ou en déplacement, sur mobile comme sur ordinateur.",
+    "features": [
+      "Générer une liste adaptée à la durée du séjour : une quantité de sous-vêtements égale au nombre de jours plus un.",
+      "Ajouter les articles propres à la saison (hiver, été, mi-saison) et au type de séjour (ville, montagne, plage).",
+      "Cocher les articles et voir la progression, les cases étant conservées dans le navigateur.",
+      "Réinitialiser toutes les cases en un clic."
+    ],
+    "acceptance": [
+      {
+        "id": "AC-1",
+        "given": "une durée de 5 jours, la saison été et le type ville",
+        "when": "l'utilisateur génère la liste",
+        "then": "la quantité affichée pour l'article « Sous-vêtements » vaut 6"
+      },
+      {
+        "id": "AC-2",
+        "given": "une durée de 3 jours, la saison hiver et le type montagne",
+        "when": "l'utilisateur génère la liste",
+        "then": "la liste contient « Bonnet » et « Chaussures de randonnée »"
+      },
+      {
+        "id": "AC-3",
+        "given": "la saison été et le type plage",
+        "when": "l'utilisateur génère la liste",
+        "then": "la liste contient « Maillot de bain » et ne contient pas « Bonnet »"
+      },
+      {
+        "id": "AC-4",
+        "given": "une durée vide, égale à 0 ou supérieure à 60",
+        "when": "l'utilisateur génère la liste",
+        "then": "aucune liste n'est affichée et le message « Indique une durée entre 1 et 60 jours. » apparaît"
+      },
+      {
+        "id": "AC-5",
+        "given": "une liste générée de N articles",
+        "when": "l'utilisateur coche l'article « Chargeur de téléphone »",
+        "then": "le compteur affiche « 1 / N » et le localStorage contient cet article comme coché sous la clé « checklist-valise:v1 »"
+      },
+      {
+        "id": "AC-6",
+        "given": "une liste dont plusieurs articles sont cochés",
+        "when": "l'utilisateur clique sur « Réinitialiser »",
+        "then": "toutes les cases sont décochées, le compteur affiche « 0 / N » et le localStorage ne contient plus aucun article coché"
+      }
+    ],
+    "outOfScope": [
+      "Création de compte, connexion ou synchronisation entre appareils",
+      "Partage de la liste avec d'autres personnes",
+      "Prévisions météo en temps réel ou réservation de séjour",
+      "Gestion de plusieurs valises ou de voyageurs multiples",
+      "Envoi de données vers un serveur ou un service tiers"
+    ]
+  }
 }
