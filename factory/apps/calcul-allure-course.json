@@ -1,0 +1,66 @@
+{
+  "slug": "calcul-allure-course",
+  "status": "live",
+  "attempts": 1,
+  "liveSince": "2026-10-17T17:56:10.770Z",
+  "history": [
+    {
+      "at": "2026-10-17T17:56:10.770Z",
+      "decision": "go",
+      "reasons": []
+    }
+  ],
+  "spec": {
+    "slug": "calcul-allure-course",
+    "name": "Calcul allure course",
+    "pitch": "Convertit un chrono visé et une distance en allure et vitesse, puis donne les temps de passage à chaque repère.",
+    "problem": "Un coureur amateur qui vise un temps sur une distance ne sait pas à quelle allure courir ni à quel moment passer chaque kilomètre. Les calculs à la main sont lents et source d'erreurs.",
+    "audience": "Coureurs amateurs sur route ou trail, sur mobile comme sur ordinateur, qui préparent une course ou un entraînement.",
+    "features": [
+      "Calculer l'allure en min/km et la vitesse en km/h à partir d'une distance et d'un chrono visé.",
+      "Afficher un tableau des temps de passage tous les 1, 2 ou 5 km, jusqu'à l'arrivée.",
+      "Ajouter une option de départ plus lent : un surcroît de secondes par km appliqué aux premiers 5 km."
+    ],
+    "acceptance": [
+      {
+        "id": "AC-1",
+        "given": "distance 10 km et chrono visé 00:50:00",
+        "when": "l'utilisateur clique sur Calculer",
+        "then": "l'allure affichée vaut 5:00 /km et la vitesse affichée vaut 12,0 km/h"
+      },
+      {
+        "id": "AC-2",
+        "given": "distance 10 km et chrono visé 00:45:00",
+        "when": "l'utilisateur clique sur Calculer",
+        "then": "l'allure affichée vaut 4:30 /km et la vitesse affichée vaut 13,3 km/h"
+      },
+      {
+        "id": "AC-3",
+        "given": "distance 10 km, chrono visé 00:50:00, repère de passage tous les 5 km, sans départ plus lent",
+        "when": "l'utilisateur clique sur Calculer",
+        "then": "le tableau contient exactement deux lignes : '5 km' à 0:25:00 et '10 km' à 0:50:00"
+      },
+      {
+        "id": "AC-4",
+        "given": "distance 10 km, chrono visé 00:50:00, repère tous les 5 km, départ plus lent de 10 s/km",
+        "when": "l'utilisateur clique sur Calculer",
+        "then": "le tableau affiche '5 km' à 0:25:50 et '10 km' à 0:50:50"
+      },
+      {
+        "id": "AC-5",
+        "given": "chrono visé vide, ou égal à 0, ou distance vide ou égale à 0",
+        "when": "l'utilisateur clique sur Calculer",
+        "then": "aucun résultat d'allure ni de tableau n'est affiché et un message d'erreur en français est visible"
+      }
+    ],
+    "outOfScope": [
+      "Suivi GPS ou import de traces (GPX, montre connectée)",
+      "Comptes utilisateurs, synchronisation ou sauvegarde en ligne",
+      "Historique des courses ou statistiques d'entraînement",
+      "Plans d'entraînement et recommandations personnalisées de santé ou de performance",
+      "Conversion en miles ou en autres unités",
+      "Prédiction de temps à partir d'un autre temps de course"
+    ]
+  },
+  "measuredSince": "2026-10-17T17:56:10.845Z"
+}

@@ -12,5 +12,11 @@
   "build:dist/prompts/spec-minuteur-pomodoro.md": 0,
   "build:dist/prompts/build-minuteur-pomodoro.md": 0,
   "build:dist/prompts/spec-compteur-scores-jeux.md": 0,
-  "build:dist/prompts/build-compteur-scores-jeux.md": 0
+  "build:dist/prompts/build-compteur-scores-jeux.md": 0,
+  "build:dist/prompts/spec-calcul-allure-course.md": 0,
+  "build:dist/prompts/build-calcul-allure-course.md": 0,
+  "cerveau:factory/prompts/brain.md": 0,
+  "cerveau:dist/prompts/bench-spec-checklist-valise.md": 0,
+  "cerveau:dist/prompts/bench-build-checklist-valise.md": 0,
+  "cerveau:factory/prompts/review.md": 0
 }

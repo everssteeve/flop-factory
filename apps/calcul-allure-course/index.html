@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; media-src 'self' data:; frame-src 'none'; worker-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"><meta name="referrer" content="no-referrer">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Calcul allure course</title>
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <main class="page">
+    <h1>Calcul allure course</h1>
+    <p class="intro">Entrez une distance et un chrono visé : l'app calcule votre allure, votre vitesse et vos temps de passage.</p>
+
+    <form id="form-allure" class="card">
+      <div class="field">
+        <label for="distance">Distance (km)</label>
+        <input id="distance" name="distance" type="text" inputmode="decimal" autocomplete="off" placeholder="10">
+      </div>
+      <div class="field">
+        <label for="chrono">Chrono visé (h:mm:ss)</label>
+        <input id="chrono" name="chrono" type="text" inputmode="numeric" autocomplete="off" placeholder="00:50:00">
+      </div>
+      <div class="field">
+        <label for="repere">Repère de passage</label>
+        <select id="repere" name="repere">
+          <option value="1">Tous les 1 km</option>
+          <option value="2">Tous les 2 km</option>
+          <option value="5" selected>Tous les 5 km</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="depart">Départ plus lent (secondes par km, sur les 5 premiers km)</label>
+        <input id="depart" name="depart" type="text" inputmode="decimal" autocomplete="off" placeholder="0">
+      </div>
+      <button type="submit" id="calculer" class="btn">Calculer</button>
+    </form>
+
+    <p id="erreur" class="erreur" role="alert"></p>
+
+    <section id="resultats" class="card" hidden>
+      <h2>Allure</h2>
+      <p>Allure : <strong id="allure"></strong></p>
+      <p>Vitesse : <strong id="vitesse"></strong></p>
+
+      <h2>Temps de passage</h2>
+      <table class="passages">
+        <thead>
+          <tr><th scope="col">Repère</th><th scope="col">Temps</th></tr>
+        </thead>
+        <tbody id="passages"></tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

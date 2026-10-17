@@ -1,0 +1,43 @@
+{
+  "runId": "cerveau-2026-10-17T17-53-18-546Z-9cf47c27",
+  "atelier": "cerveau",
+  "prompt": "dist/prompts/bench-build-checklist-valise.md",
+  "model": "haiku",
+  "capUsd": 0.4184,
+  "remainingBeforeUsd": 0.8367,
+  "usd": 0.015665764999999998,
+  "status": "ok",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "tools": [
+    "Bash",
+    "Edit",
+    "Read"
+  ],
+  "missingTools": [
+    "Write",
+    "Glob",
+    "Grep"
+  ],
+  "resultText": "L'app Checklist Valise est construite et `node test.mjs` sort avec le code 0. Chaque critère AC-1 à AC-6 affiche sa ligne `ok AC-n`.\n\nFichiers créés dans le dossier courant :\n- **`app.js`** : les fonctions de calcul sont exportées et sans accès au DOM (`validateDuration`, `buildList`, `generate`, `toggleItem`, `formatCounter`, `saveState`, `restore`, `renderItems`). Le branchement à la page ne s'exécute que si `document` existe.\n- **`index.html`** : titre, viewport, lien vers `style.css`, `app.js` en module. Aucune ressource externe, aucun script ni style en ligne.\n- **`style.css`** : police système, cibles de 44 px minimum, contrastes lisibles, largeur max de 40 rem.\n- **`test.mjs`** : appelle les fonctions exportées avec de vraies valeurs et un faux stockage. Il couvre les branches de saisie invalide (0, 61, vide) et de relecture du stockage (vide, JSON invalide, paramètres hors bornes, état valide). Il vérifie aussi le HTML (pas de script ou style en ligne, pas d'attribut `style` ni de gestionnaire `on…`, pas de ressource externe).\n- **`report.json`** : `status: ok`, avec deux points signalés dans `blockers`.\n\nPoints à noter :\n- **Débordement horizontal non mesuré.** Je n'ai pas de navigateur sans installer de paquet. Le CSS est conçu pour éviter le débordement à 375 px et 1280 px, mais cela reste à vérifier en porte qualité.\n- **Incohérence dans la consigne sur « 31 ».** Le texte parle de saisies invalides « 0 ou 31 », alors que la spec fixe la plage à 1–60 jours. J'ai suivi la spec : 31 est accepté et le test le vérifie.\n- **Passeport.** La case « Passeport » est une simple affaire de la liste, sans conseil administratif.\n\n`spec.json` n'a pas été modifié, aucun paquet n'a été installé, rien n'a été poussé ni déployé, et je n'ai pas écrit de pied de page légal.",
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 6,
+  "permissionDenials": [],
+  "report": {
+    "status": "ok",
+    "summary": "Checklist Valise construite : index.html, style.css, app.js (fonctions pures exportées + branchement DOM conditionnel), test.mjs. `node test.mjs` affiche ok AC-1 à ok AC-6 (plus ok page et ok liste-sans-doublon) et sort avec le code 0. Aucun paquet installé, aucune ressource externe, aucun script ou style en ligne, pas de pied de page légal. spec.json non modifié.",
+    "blockers": [
+      "Non vérifié en navigateur réel : l'absence de débordement horizontal à 375 px et 1280 px n'a pas été mesurée (pas de navigateur disponible sans installer de paquet). Le CSS est conçu pour cela (boîtes en border-box, largeur max 40 rem, cibles de 44 px), à valider lors de la porte qualité.",
+      "Incohérence dans la consigne : le texte parle de saisies invalides « 0 ou 31 », mais les fonctionnalités et AC-6 définissent la plage valide comme 1 à 60 jours. J'ai suivi la spec : 31 est accepté, et test.mjs le vérifie. Les saisies refusées testées sont 0, 61, vide, 2.5, abc et -3."
+    ]
+  },
+  "stderrTail": ""
+}

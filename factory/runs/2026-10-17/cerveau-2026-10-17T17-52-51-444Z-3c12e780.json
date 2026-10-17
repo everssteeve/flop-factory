@@ -1,0 +1,40 @@
+{
+  "runId": "cerveau-2026-10-17T17-52-51-444Z-3c12e780",
+  "atelier": "cerveau",
+  "prompt": "factory/prompts/brain.md",
+  "model": "sonnet",
+  "capUsd": 0.435,
+  "remainingBeforeUsd": 0.87,
+  "usd": 0.0310405,
+  "status": "ok",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "tools": [
+    "Bash",
+    "Edit",
+    "Read"
+  ],
+  "missingTools": [
+    "Write",
+    "Glob",
+    "Grep"
+  ],
+  "resultText": "J'ai traité le motif « revue : AC-n », le plus fréquent dans `digest.json` (2 échecs, tous deux sur `checklist-valise`). Je n'ai rien exécuté ni essayé sur l'app de référence.\n\nDans les deux cas, `test.mjs` ne faisait pas tourner le comportement décrit par le critère. Le message d'erreur n'était vérifié que par la présence d'une chaîne dans le source. La relecture du stockage au chargement n'était jamais appelée.\n\n**Changement dans `build.md`** : j'ai ajouté une phrase juste après « Chercher une chaîne dans le source n'est jamais un test ». Chaque branche décrite par un critère doit être appelée par `test.mjs` via une fonction exportée. Les deux exemples cités sont la saisie invalide (0 ou 31) et la relecture du stockage au chargement. Il faut une entrée qui déclenche la branche, et le test compare le résultat exact (message, état, éléments). Les variables `{{…}}` et les phrases de sécurité sont intactes. La phrase ne parle ni de la revue, ni de la porte, ni des lignes `ok AC-n`.\n\n**Autres motifs non traités** : « porte : API réseau interdite dans test » (1 cas) et « revue : AC-n non entièrement vérifié » (1 cas, sur le défilement horizontal à 360 px). Le second est déjà couvert en partie par la consigne existante sur l'absence de débordement horizontal.\n\nJ'ai écrit `proposal.json` et `report.json` (statut `ok`, sans blocage). Je n'ai modifié aucun autre fichier.",
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 4,
+  "permissionDenials": [],
+  "report": {
+    "status": "ok",
+    "summary": "Une phrase ajoutée à build.md pour le motif revue : AC-n.",
+    "blockers": []
+  },
+  "stderrTail": ""
+}

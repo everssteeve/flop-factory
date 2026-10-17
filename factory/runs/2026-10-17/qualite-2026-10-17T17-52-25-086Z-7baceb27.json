@@ -1,0 +1,40 @@
+{
+  "runId": "qualite-2026-10-17T17-52-25-086Z-7baceb27",
+  "atelier": "qualite",
+  "prompt": "factory/prompts/review.md",
+  "model": "haiku",
+  "capUsd": 0.4107,
+  "remainingBeforeUsd": 0.8213,
+  "usd": 0.0047464049999999995,
+  "status": "ok",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "tools": [
+    "Bash",
+    "Edit",
+    "Read"
+  ],
+  "missingTools": [
+    "Write",
+    "Glob",
+    "Grep"
+  ],
+  "resultText": "La revue est terminée. J'ai écrit `review.json` (score 8/10, aucun défaut bloquant) et `report.json` (status `ok`) dans le dossier courant.\n\n**Vérifications**\n- **Critères d'acceptation (1)** : les cinq sont implémentés dans `app.js` (`compute`, `validate`, `computeSplits`) et `test.mjs` appelle ces fonctions exportées avec les valeurs attendues. Je n'ai relevé aucun `ok AC-n` sans contrôle réel. `node test.mjs` passe.\n- **Utilisabilité (2)** : les champs ont des labels associés, les saisies invalides donnent des messages en français, et le CSS ne montre rien de cassant à 375 px (tableau en `table-layout: fixed`, `min-width: 0`, `overflow-x: hidden`). Le débordement réel reste à confirmer par le test navigateur de l'usine.\n- **Conformité (3)** : pas de ressource externe, pas de `fetch` ni de collecte de données, pas de sujet interdit, pas d'imitation de marque. Aucun texte dans les fichiers ne s'adresse à l'évaluateur.\n\n**Remarques non bloquantes (dans `notes`)**\n- Le branchement DOM (`afficher`, non exporté) n'est pas exécuté par les tests Node. Il se contente d'afficher le retour de `compute`, donc je l'ai jugé acceptable, mais le test navigateur devrait confirmer que les résultats sont masqués et que le message d'erreur est visible après une saisie invalide.\n- `#erreur` a `role=\"alert\"` mais est masqué par `display:none` quand il est vide, ce qui peut gêner certains lecteurs d'écran. Un conteneur toujours présent avec `aria-live` serait plus robuste.\n- Le format attendu du chrono et de la distance n'est indiqué que dans le libellé et le placeholder, sans `aria-describedby`.\n\nJe n'ai touché à aucun autre fichier que les deux demandés, et je n'ai pas lu les variables d'environnement ni les fichiers `.env`.",
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 4,
+  "permissionDenials": [],
+  "report": {
+    "status": "ok",
+    "summary": "Revue de calcul-allure-course : les 5 critères d'acceptation sont implémentés et testés via les fonctions exportées ; node test.mjs passe. Aucun défaut bloquant. Score 8/10. Remarques non bloquantes dans review.json (branchement DOM non testé en Node, accessibilité de #erreur, aria-describedby).",
+    "blockers": []
+  },
+  "stderrTail": ""
+}

@@ -400,6 +400,78 @@
       "usd": 0.004764285,
       "status": "ok",
       "at": "2026-10-17T17:29:09.539Z"
+    },
+    {
+      "runId": "qualite-2026-10-17T17-50-10-044Z-10f21180",
+      "atelier": "qualite",
+      "model": "haiku",
+      "usd": 0.00047972499999999996,
+      "status": "ok",
+      "at": "2026-10-17T17:50:10.044Z"
+    },
+    {
+      "runId": "decouverte-2026-10-17T17-50-14-197Z-ea027751",
+      "atelier": "decouverte",
+      "model": "haiku",
+      "usd": 0.09016192499999999,
+      "status": "ok",
+      "at": "2026-10-17T17:50:14.197Z"
+    },
+    {
+      "runId": "build-2026-10-17T17-50-58-293Z-c7b51286",
+      "atelier": "build",
+      "model": "haiku",
+      "usd": 0.002480595,
+      "status": "ok",
+      "at": "2026-10-17T17:50:58.293Z"
+    },
+    {
+      "runId": "build-2026-10-17T17-51-16-039Z-ec99458e",
+      "atelier": "build",
+      "model": "haiku",
+      "usd": 0.0114702,
+      "status": "ok",
+      "at": "2026-10-17T17:51:16.039Z"
+    },
+    {
+      "runId": "qualite-2026-10-17T17-52-25-086Z-7baceb27",
+      "atelier": "qualite",
+      "model": "haiku",
+      "usd": 0.0047464049999999995,
+      "status": "ok",
+      "at": "2026-10-17T17:52:25.086Z"
+    },
+    {
+      "runId": "cerveau-2026-10-17T17-52-51-444Z-3c12e780",
+      "atelier": "cerveau",
+      "model": "sonnet",
+      "usd": 0.0310405,
+      "status": "ok",
+      "at": "2026-10-17T17:52:51.444Z"
+    },
+    {
+      "runId": "cerveau-2026-10-17T17-53-02-753Z-b21d24be",
+      "atelier": "cerveau",
+      "model": "haiku",
+      "usd": 0.00221787,
+      "status": "ok",
+      "at": "2026-10-17T17:53:02.753Z"
+    },
+    {
+      "runId": "cerveau-2026-10-17T17-53-18-546Z-9cf47c27",
+      "atelier": "cerveau",
+      "model": "haiku",
+      "usd": 0.015665764999999998,
+      "status": "ok",
+      "at": "2026-10-17T17:53:18.546Z"
+    },
+    {
+      "runId": "cerveau-2026-10-17T17-54-51-946Z-c5ccd091",
+      "atelier": "cerveau",
+      "model": "haiku",
+      "usd": 0.004090165,
+      "status": "ok",
+      "at": "2026-10-17T17:54:51.946Z"
     }
   ]
 }

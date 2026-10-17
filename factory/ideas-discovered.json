@@ -9,6 +9,21 @@
       "slug": "calcul-allure-course",
       "idea": "Pour les coureurs amateurs : convertir un chrono visé et une distance en allure min/km et vitesse km/h, et afficher un tableau de temps de passage tous les 1, 2 ou 5 km, avec option de départ plus lent.",
       "evidence": "Des sites de course à pied proposent des calculateurs d'allure et de temps de passage très consultés pour préparer 10 km, semi et marathon."
+    },
+    {
+      "slug": "roue-corvees",
+      "idea": "Tirer au sort et faire tourner les tâches ménagères entre les membres d'un foyer ou des colocataires : on saisit les personnes et les corvées, et l'app génère un planning de rotation équitable à copier ou imprimer.",
+      "evidence": "Articles sur la répartition des tâches ménagères et tutoriels de « roue des corvées » ; peu d'outils français simples repérés."
+    },
+    {
+      "slug": "calcul-carrelage-chutes",
+      "idea": "Estimer le carrelage ou le parquet à commander : surface de chaque pièce moins les ouvertures, taux de chute selon le type de pose (droite, diagonale, motifs), puis nombre de boîtes ou de carreaux arrondi à l'entier supérieur.",
+      "evidence": "Calculateurs en ligne et guides de pose détaillent la surface nette, les taux de chute et l'arrondi à la hausse pour carrelage et parquet."
+    },
+    {
+      "slug": "calcul-plants-massif",
+      "idea": "Calculer combien de plants acheter pour un massif ou un potager : longueur et largeur de la zone, écart entre les plants, puis nombre total. Pour les jardiniers amateurs qui planifient leurs plantations.",
+      "evidence": "Fiches de plantation expliquent la densité par m² à partir de l'écart entre plants ; peu de sources françaises simples trouvées."
     }
   ]
 }

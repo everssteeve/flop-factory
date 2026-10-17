@@ -1,0 +1,40 @@
+{
+  "runId": "build-2026-10-17T17-50-58-293Z-c7b51286",
+  "atelier": "build",
+  "prompt": "dist/prompts/spec-calcul-allure-course.md",
+  "model": "haiku",
+  "capUsd": 1.1003,
+  "remainingBeforeUsd": 2.2007,
+  "usd": 0.002480595,
+  "status": "ok",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "tools": [
+    "Bash",
+    "Edit",
+    "Read"
+  ],
+  "missingTools": [
+    "Write",
+    "Glob",
+    "Grep"
+  ],
+  "resultText": "J'ai écrit `spec.json` et `report.json` dans le dossier courant. Les deux fichiers sont du JSON valide. Le sujet n'est pas interdit : il s'agit d'un calculateur d'allure pour coureurs amateurs, sans données personnelles ni service externe.\n\n**Contenu de la spec**\n- **Nom :** Calcul allure course\n- **Fonctions :**\n  1. Calcul de l'allure (min/km) et de la vitesse (km/h) à partir d'une distance et d'un chrono visé.\n  2. Tableau des temps de passage tous les 1, 2 ou 5 km, jusqu'à l'arrivée.\n  3. Option de départ plus lent : un surcroît de secondes par km, appliqué aux 5 premiers km.\n- **Critères d'acceptation (5) :**\n  - AC-1 : 10 km en 00:50:00 donne 5:00 /km et 12,0 km/h.\n  - AC-2 : 10 km en 00:45:00 donne 4:30 /km et 13,3 km/h.\n  - AC-3 : repères tous les 5 km, sans départ plus lent, donnent 0:25:00 à 5 km et 0:50:00 à 10 km.\n  - AC-4 : avec +10 s/km sur les 5 premiers km, on obtient 0:25:50 à 5 km et 0:50:50 à 10 km.\n  - AC-5 : chrono ou distance vides ou nuls affichent un message d'erreur et aucun résultat.\n- **Hors périmètre :** GPS et imports de traces, comptes et synchronisation, historique, plans d'entraînement, conversion en miles, prédiction de temps.\n\nLes critères ne portent que sur des calculs, des contenus affichés et des réactions aux actions. Je n'ai pas écrit de critère de mise en page, d'erreur console ou de requête externe, puisque l'usine les contrôle elle-même.\n\n**Choix à relire :** la règle du départ plus lent est une interprétation de l'idée d'origine. J'ai retenu un surcroît fixe en secondes par km sur les 5 premiers km, parce que c'est simple à tester. Si l'équipe voulait une autre règle, comme un ralentissement en pourcentage ou une longueur de départ variable, les AC-4 et les fonctions sont à revoir.\n\n**Rapport :** `report.json` a le statut `ok`, sans blocage.",
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 2,
+  "permissionDenials": [],
+  "report": {
+    "status": "ok",
+    "summary": "Spécification de l'app statique calcul-allure-course écrite dans spec.json : 3 fonctions, 5 critères d'acceptation testables (allure, vitesse, temps de passage, départ plus lent, validation des entrées). Sujet non interdit.",
+    "blockers": []
+  },
+  "stderrTail": ""
+}

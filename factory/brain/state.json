@@ -1,0 +1,23 @@
+{
+  "lastProposalAt": "2026-10-17T17:56:10.913Z",
+  "current": {
+    "id": "2026-10-17-717a70db4c",
+    "status": "evaluating",
+    "adoptedAt": "2026-10-17T17:56:10.913Z",
+    "baseline": 0.6666666666666666,
+    "motif": "revue : AC-n",
+    "change": "Ajout dans build.md : chaque branche d'un critère (saisie invalide, relecture du stockage au chargement) doit être appelée par test.mjs via une fonction exportée, avec une entrée qui la déclenche et une comparaison du résultat exact.",
+    "files": [
+      "build"
+    ]
+  },
+  "history": [
+    {
+      "id": "2026-10-17-717a70db4c",
+      "at": "2026-10-17T17:56:10.913Z",
+      "decision": "adopted",
+      "motif": "revue : AC-n",
+      "reason": "Ajout dans build.md : chaque branche d'un critère (saisie invalide, relecture du stockage au chargement) doit être appelée par test.mjs via une fonction exportée, avec une entrée qui la déclenche et une comparaison du résultat exact."
+    }
+  ]
+}

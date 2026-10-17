@@ -1,0 +1,40 @@
+{
+  "runId": "build-2026-10-17T17-51-16-039Z-ec99458e",
+  "atelier": "build",
+  "prompt": "dist/prompts/build-calcul-allure-course.md",
+  "model": "haiku",
+  "capUsd": 1.0991,
+  "remainingBeforeUsd": 2.1982,
+  "usd": 0.0114702,
+  "status": "ok",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "tools": [
+    "Bash",
+    "Edit",
+    "Read"
+  ],
+  "missingTools": [
+    "Write",
+    "Glob",
+    "Grep"
+  ],
+  "resultText": "L'app est construite dans le dossier courant. `node test.mjs` affiche `ok AC-1` à `ok AC-5` et sort avec le code 0. `report.json` est écrit avec `\"status\": \"ok\"` et aucun blocage.\n\n**Fichiers produits**\n- `index.html` : page en français, titre « Calcul allure course », viewport, lien vers `style.css`, `app.js` en module. Aucune ressource externe, aucun `<script>` ou `<style>` en ligne, aucun attribut `style` ni `onclick`.\n- `style.css` : mise en page fluide (`max-width` 40 rem, `box-sizing` partout), police système, cibles d'au moins 44 px, contrastes vérifiés à l'œil. Je n'ai pas testé le rendu réel à 375 px ni à 1280 px, faute de navigateur dans le run.\n- `app.js` : fonctions exportées sans DOM (`parseChrono`, `parseDistance`, `parseDepart`, `validate`, `formatPace`, `formatSpeed`, `computeSplits`, `compute`). Le branchement à la page ne tourne que si `document` existe.\n- `test.mjs` : sans dépendance. Il appelle les vraies fonctions pour chaque critère et lit `index.html` pour les contrôles de structure et de politique de sécurité.\n\n**Choix faits sans question**\n- Le surcroît de départ s'applique aux 5 premiers km, comme demandé. Seul le tableau des passages en tient compte ; l'allure affichée reste l'allure visée.\n- Si la distance n'est pas un multiple du repère, l'arrivée est ajoutée comme dernière ligne (par exemple « 10,5 km »).\n- Les formats acceptés pour le chrono sont `h:mm:ss` et `mm:ss`. La distance accepte la virgule ou le point.\n- Le message d'erreur de `validate` est affiché et tout résultat précédent est masqué.\n\n**Non fait, volontairement**\n- Pas de pied de page légal (géré par l'usine), pas de push, pas de déploiement, pas d'installation de paquet.\n- Je n'ai pas lu les fichiers `.env*` présents dans le dossier.\n- `spec.json` n'a pas été modifié.",
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 5,
+  "permissionDenials": [],
+  "report": {
+    "status": "ok",
+    "summary": "App calcul-allure-course construite sans dépendance : index.html, style.css, app.js (fonctions de calcul exportées, branchement DOM conditionnel) et test.mjs. node test.mjs affiche ok AC-1 à ok AC-5 (plus deux contrôles de page et de calculs annexes) et sort avec le code 0. Aucun script/style en ligne, aucune ressource externe, aucun fetch. Pied de page légal non ajouté (géré par l'usine). spec.json non modifié, aucun paquet installé, rien poussé ni déployé. Les fichiers .env présents dans le dossier n'ont pas été lus.",
+    "blockers": []
+  },
+  "stderrTail": ""
+}
