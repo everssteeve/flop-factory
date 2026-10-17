@@ -1,0 +1,29 @@
+{
+  "runId": "build-2026-10-17T14-00-47-189Z-90d81384",
+  "atelier": "build",
+  "prompt": "dist/prompts/spec-tirage-equipes.md",
+  "model": "haiku",
+  "capUsd": 1.139,
+  "remainingBeforeUsd": 2.2779,
+  "usd": 0.002260135,
+  "status": "ok",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 3,
+  "permissionDenials": [],
+  "report": {
+    "status": "ok",
+    "summary": "Spécification de l'app « Tirage d'équipes » rédigée dans spec.json : saisie de prénoms, tirage aléatoire équilibré par nombre ou taille d'équipe, copie du résultat. 5 critères d'acceptation testables en Node (répartition, parsing, message d'erreur, texte copié). Aucun sujet interdit identifié. Choix prudents : doublons de prénoms acceptés tels quels, pas de persistance hors session.",
+    "blockers": []
+  },
+  "stderrTail": ""
+}

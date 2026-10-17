@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; media-src 'self' data:; frame-src 'none'; worker-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"><meta name="referrer" content="no-referrer">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tirage d'équipes</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="entete">
+    <h1>Tirage d'équipes</h1>
+    <p>Collez une liste de prénoms et obtenez des équipes tirées au hasard et équilibrées, à copier en un clic.</p>
+  </header>
+
+  <main class="principal">
+    <form id="formulaire" class="carte" novalidate>
+      <label for="prenoms" class="champ-titre">Prénoms, un par ligne</label>
+      <textarea id="prenoms" name="prenoms" rows="8" placeholder="Alice&#10;Bob&#10;Chloé"></textarea>
+
+      <div class="ligne-options">
+        <div class="champ">
+          <label for="mode">Répartir par</label>
+          <select id="mode" name="mode">
+            <option value="equipes">Nombre d'équipes</option>
+            <option value="taille">Taille d'équipe</option>
+          </select>
+        </div>
+        <div class="champ">
+          <label id="libelle-valeur" for="valeur">Nombre d'équipes</label>
+          <input id="valeur" name="valeur" type="number" min="1" max="999" value="3" inputmode="numeric">
+        </div>
+      </div>
+
+      <button type="submit" class="bouton bouton-principal">Tirer les équipes</button>
+      <p id="erreur" class="message-erreur" role="alert" hidden></p>
+    </form>
+
+    <section id="resultat" class="carte" hidden>
+      <h2>Résultat</h2>
+      <div id="sortie" class="sortie"></div>
+      <button type="button" id="copier" class="bouton bouton-secondaire">Copier</button>
+      <p id="retour-copie" class="message-aide" role="status"></p>
+    </section>
+  </main>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

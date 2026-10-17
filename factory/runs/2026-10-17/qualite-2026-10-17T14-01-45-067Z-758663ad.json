@@ -1,0 +1,29 @@
+{
+  "runId": "qualite-2026-10-17T14-01-45-067Z-758663ad",
+  "atelier": "qualite",
+  "prompt": "factory/prompts/review.md",
+  "model": "haiku",
+  "capUsd": 0.4238,
+  "remainingBeforeUsd": 0.8477,
+  "usd": 0.004288845,
+  "status": "ok",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 4,
+  "permissionDenials": [],
+  "report": {
+    "status": "ok",
+    "summary": "Revue de l'app tirage-equipes : les 5 critères d'acceptation sont implémentés et leurs calculs sont vérifiés par node test.mjs (tous les tests passent). Aucun défaut bloquant. Réserves non bloquantes : tests UI par regex seulement pour AC-4 et AC-5, réduction silencieuse du nombre d'équipes, et contrôles navigateur (375/1280 px, console) à confirmer par l'usine. Score 7/10.",
+    "blockers": []
+  },
+  "stderrTail": ""
+}

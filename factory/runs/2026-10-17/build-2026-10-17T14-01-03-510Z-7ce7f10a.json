@@ -1,0 +1,29 @@
+{
+  "runId": "build-2026-10-17T14-01-03-510Z-7ce7f10a",
+  "atelier": "build",
+  "prompt": "dist/prompts/build-tirage-equipes.md",
+  "model": "haiku",
+  "capUsd": 1.1378,
+  "remainingBeforeUsd": 2.2756,
+  "usd": 0.00730171,
+  "status": "ok",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 6,
+  "permissionDenials": [],
+  "report": {
+    "status": "ok",
+    "summary": "App Tirage d'équipes construite sans dépendance : index.html (title, viewport, style.css, app.js module, aucune ressource externe ni script/style en ligne), style.css (mise en page fluide, cibles tactiles 44 px, police système), app.js (lirePrenoms, tirerEquipes avec répartition équilibrée et tirage Fisher-Yates injectable, formaterResultat, branchement DOM protégé par typeof document, rendu par createElement/textContent, copie via navigator.clipboard) et test.mjs. `node test.mjs` affiche ok structure, ok AC-1 à ok AC-5 et sort avec le code 0. Le pied de page légal n'a pas été ajouté, conformément à la consigne. Rien n'a été installé, poussé ni déployé ; spec.json n'a pas été modifié.",
+    "blockers": []
+  },
+  "stderrTail": ""
+}

@@ -1,0 +1,64 @@
+{
+  "slug": "tirage-equipes",
+  "status": "live",
+  "attempts": 1,
+  "liveSince": "2026-10-17T14:03:13.802Z",
+  "history": [
+    {
+      "at": "2026-10-17T14:03:13.802Z",
+      "decision": "go",
+      "reasons": []
+    }
+  ],
+  "spec": {
+    "slug": "tirage-equipes",
+    "name": "Tirage d'équipes",
+    "pitch": "Collez une liste de prénoms et obtenez des équipes tirées au hasard et équilibrées, à copier en un clic.",
+    "problem": "Former des équipes équilibrées à partir d'une liste de prénoms prend du temps à la main et crée des groupes de tailles inégales ou des oublis.",
+    "audience": "Animateurs, enseignants, responsables de groupe ou de jeu qui doivent répartir des personnes en équipes rapidement, sur mobile comme sur ordinateur.",
+    "features": [
+      "Coller une liste de prénoms, un par ligne, en ignorant les lignes vides et les espaces superflus.",
+      "Choisir un nombre d'équipes ou une taille d'équipe, puis tirer une répartition aléatoire et équilibrée.",
+      "Copier le résultat en un clic dans le presse-papiers, sous forme de texte lisible."
+    ],
+    "acceptance": [
+      {
+        "id": "AC-1",
+        "given": "une liste de 7 prénoms saisie (Alice, Bob, Chloé, Dan, Eva, Farid, Gaël)",
+        "when": "l'utilisateur demande 3 équipes",
+        "then": "le résultat contient 3 équipes de tailles 3, 2 et 2, et chacun des 7 prénoms apparaît exactement une fois"
+      },
+      {
+        "id": "AC-2",
+        "given": "une liste de 10 prénoms saisie",
+        "when": "l'utilisateur demande une taille d'équipe de 4",
+        "then": "le résultat contient 3 équipes de tailles 4, 3 et 3, et chacun des 10 prénoms apparaît exactement une fois"
+      },
+      {
+        "id": "AC-3",
+        "given": "une saisie contenant une ligne vide et des prénoms entourés d'espaces (\"  Alice \\n\\n Bob  \\n\")",
+        "when": "la liste est lue",
+        "then": "la liste obtenue est exactement [\"Alice\", \"Bob\"]"
+      },
+      {
+        "id": "AC-4",
+        "given": "une saisie ne contenant qu'un seul prénom",
+        "when": "l'utilisateur demande un tirage",
+        "then": "aucune équipe n'est produite et le message \"Saisissez au moins 2 prénoms\" est affiché"
+      },
+      {
+        "id": "AC-5",
+        "given": "un résultat de tirage contenant les équipes 1 : [Alice, Bob] et 2 : [Chloé, Dan]",
+        "when": "l'utilisateur clique sur le bouton Copier",
+        "then": "le texte copié est exactement \"Équipe 1 : Alice, Bob\" suivi d'un saut de ligne puis \"Équipe 2 : Chloé, Dan\""
+      }
+    ],
+    "outOfScope": [
+      "Comptes utilisateurs, connexion et synchronisation entre appareils.",
+      "Envoi des prénoms vers un serveur ou un service externe.",
+      "Pondération par niveau, genre, affinités ou contraintes entre personnes.",
+      "Import de fichiers, export en PDF ou Excel, partage par lien.",
+      "Mémorisation de l'historique des tirages entre deux visites."
+    ]
+  }
+}
