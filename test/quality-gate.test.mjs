@@ -53,6 +53,12 @@ test("fichiers transportés : à plat, extensions et taille bornées, pas de lie
   assert.ok(problems.includes("extension refusée : evil.sh"));
   assert.ok(problems.includes("lien symbolique refusé : passwd.txt"));
   assert.ok(problems.includes("sous-dossier refusé : sub"));
+  // Fichiers cachés laissés par la sandbox : ignorés, jamais copiés.
+  const dotted = app({ ".env": "", ".env.local": "SECRET=1" });
+  mkdirSync(join(dotted, ".claude"));
+  const r = collectFiles(dotted, LIMITS);
+  assert.deepEqual(r.problems, []);
+  assert.ok(!r.files.some((f) => f.startsWith(".")));
   const big = app({ "big.txt": "x".repeat(LIMITS.maxSiteBytes + 1) });
   assert.ok(collectFiles(big, LIMITS).problems.some((p) => p.startsWith("app trop lourde")));
 });
