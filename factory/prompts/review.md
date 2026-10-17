@@ -8,6 +8,8 @@ Lis `spec.json`, puis `index.html`, `style.css`, `app.js` et `test.mjs`. Tu peux
 2. L'app est utilisable : les contrôles sont étiquetés, les erreurs de saisie sont gérées, rien n'est cassé à 375 px.
 3. Rien d'interdit : ressource externe, collecte de données, sujet de la liste « Sujets interdits », texte trompeur, imitation d'une marque.
 
+L'usine vérifie elle-même, dans un vrai navigateur, l'absence de débordement à 375 et 1280 px, d'erreur console et de requête externe. Ne bloque pas sur ces points faute de test Node : signale-les en `notes` si le code te paraît fragile.
+
 Écris `review.json` dans le dossier courant :
 
 ```json
