@@ -2,7 +2,7 @@
 
 Une usine qui crée des webapps à la chaîne, sans intervention humaine, dans un budget fixe de tokens par jour. Elle produit beaucoup, mesure, et tue vite ce qui ne prend pas.
 
-Phase actuelle : **Marché** (phase 3). Porte de sortie : une idée trouvée par l'usine elle-même mise en ligne, et un premier verdict J+30 rendu automatiquement. Validées : Socle (17 octobre 2026) et Chaîne de build (trois apps en ligne le 17 octobre 2026).
+Phase actuelle : **Auto-amélioration** (phase 4). Porte de sortie : une amélioration de prompt proposée, essayée et adoptée sans humain, puis gardée ou retirée selon les résultats. Validées : Socle et Chaîne de build (17 octobre 2026). Marché : une idée trouvée par l'usine est en ligne depuis le 17 octobre ; le premier verdict J+30 est attendu mi-novembre.
 
 ## Comment ça tourne
 
@@ -24,6 +24,11 @@ Chaque matin, le workflow [Usine](.github/workflows/usine.yml) fait avancer une 
 - **Mesure** : avec la variable `GOATCOUNTER_CODE`, chaque app reçoit le compteur de l'usine (`ff-count.js`). Il signale l'ouverture de l'app, puis une seule fois sa première utilisation réelle (clic, saisie ou touche). Il ne signale jamais le contenu saisi, n'utilise aucun cookie et se tait si le navigateur demande à ne pas être suivi. La politique de sécurité ne s'ouvre qu'à cette image.
 - **Verdict J+30** : le job records lit, avec le secret `GOATCOUNTER_TOKEN`, combien de visiteurs ont utilisé chaque app. En dessous de `kill.minimum` sur `kill.afterDays` jours, l'app est retirée du catalogue. Aucun retrait sans mesure configurée, sans mesure couvrant toute la fenêtre, ou si l'API ne répond pas.
 - **Référencement** : chaque app reçoit une méta description (le pitch de sa spec). Le site publie aussi `sitemap.xml` et `robots.txt`.
+
+## Auto-amélioration : deux zones
+
+- **Zone automatique** : les prompts de production `spec.md`, `build.md` et `discovery.md`. Leurs versions adoptées vivent sur la branche `data`, dans `factory/brain/prompts/`. Le cerveau (Sonnet, une fois par jour au plus) part des motifs d'échec regroupés par du code (`lib/digest.mjs`). Il propose le plus petit changement, qui doit garder les variables `{{…}}` et les phrases de sécurité (`lib/brain-zone.mjs`). Le changement est essayé sur l'app de référence (`brain.benchSlug`) par les modèles de production. Il est adopté seulement si cette app passe la porte et la revue, selon la règle de l'arbitre. Une seule version est évaluée à la fois. Après `evalWindow` décisions, elle est gardée, ou retirée automatiquement si le taux de go tombe de plus de `tolerance` sous sa référence.
+- **Zone humaine** : tout ce qui juge ou protège. Cela couvre la revue, la porte, l'arbitre, les règles des runs, la liste noire, le budget, les hooks, la sandbox et les workflows. Tout cela reste sur `main`, derrière une PR. Le cerveau ne peut pas l'atteindre : il ne lit le prompt de la revue que pour référence, et toute écriture hors zone est rejetée.
 
 ## Ce qui protège l'usine
 

@@ -6,7 +6,7 @@
 //
 //   ANTHROPIC_API_KEY=... node scripts/leak-check.mjs <dir>
 
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readdirSync, readFileSync, lstatSync } from "node:fs";
 import { join } from "node:path";
 
 export function encodings(secret) {
@@ -24,11 +24,14 @@ export function encodings(secret) {
   return forms.filter((f) => f.length >= 12);
 }
 
+// Liens symboliques et fichiers spéciaux ignorés (un lien vers /dev/zero
+// bloquerait la fouille) ; ils ne sortent jamais du job de toute façon.
 function* files(dir) {
   for (const name of readdirSync(dir)) {
     const p = join(dir, name);
-    if (statSync(p).isDirectory()) yield* files(p);
-    else yield p;
+    const st = lstatSync(p);
+    if (st.isDirectory()) yield* files(p);
+    else if (st.isFile()) yield p;
   }
 }
 
