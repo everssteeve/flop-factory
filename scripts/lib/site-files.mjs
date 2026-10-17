@@ -6,7 +6,14 @@ import { lstatSync, readdirSync, copyFileSync, mkdirSync } from "node:fs";
 import { join, extname } from "node:path";
 
 /** Fichiers de travail que l'agent laisse et qui ne sont jamais publiés. */
-export const NEVER_PUBLISHED = new Set(["report.json", "review.json", "spec.json"]);
+export const NEVER_PUBLISHED = new Set(["report.json", "review.json", "spec.json", "package.json"]);
+
+/**
+ * package.json posé par l'usine dans chaque dossier de travail. La sandbox de
+ * Claude Code protège ce fichier : absent, elle le crée vide et en lecture
+ * seule, ce qui empêche Node de charger les modules du dossier.
+ */
+export const WORKDIR_PACKAGE = '{\n  "private": true,\n  "type": "module"\n}\n';
 
 export function collectFiles(dir, { allowedExtensions, maxSiteBytes }) {
   const files = [];
@@ -18,6 +25,9 @@ export function collectFiles(dir, { allowedExtensions, maxSiteBytes }) {
     if (name.startsWith(".")) continue;
     const p = join(dir, name);
     const st = lstatSync(p);
+    // Fichiers vides : souvent des points de montage de la sandbox (bunfig.toml,
+    // lefthook.yml…). Jamais utiles à une app, jamais transportés.
+    if (st.isFile() && st.size === 0) continue;
     if (st.isSymbolicLink()) problems.push(`lien symbolique refusé : ${name}`);
     else if (st.isDirectory()) {
       if (name !== "node_modules") problems.push(`sous-dossier refusé : ${name}`);

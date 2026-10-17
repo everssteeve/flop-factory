@@ -59,6 +59,9 @@ test("fichiers transportés : à plat, extensions et taille bornées, pas de lie
   const r = collectFiles(dotted, LIMITS);
   assert.deepEqual(r.problems, []);
   assert.ok(!r.files.some((f) => f.startsWith(".")));
+  // Points de montage vides de la sandbox et package.json de l'usine : jamais publiés.
+  const mounts = app({ "bunfig.toml": "", "lefthook.yml": "", "package.json": "" });
+  assert.deepEqual(collectFiles(mounts, LIMITS).problems, []);
   const big = app({ "big.txt": "x".repeat(LIMITS.maxSiteBytes + 1) });
   assert.ok(collectFiles(big, LIMITS).problems.some((p) => p.startsWith("app trop lourde")));
 });
@@ -129,11 +132,11 @@ test("chaque critère doit être vérifié par test.mjs", { skip: !SANDBOX && "b
 
 test("porte complète : verdict écrit, site publiable sans fichiers de travail", { skip: !SANDBOX && "bubblewrap absent" }, async () => {
   const out = join(mkdtempSync(join(tmpdir(), "ff-verdict-")), "v");
-  const gate = await runGate(app({ "report.json": '{"status":"ok"}' }), out, repo, { browser: noBrowser });
+  const gate = await runGate(app({ "report.json": '{"status":"ok"}', "package.json": '{"type":"module"}' }), out, repo, { browser: noBrowser });
   assert.equal(gate.passed, true, gate.problems.join("\n"));
   assert.deepEqual(gate.acceptanceSeen.sort(), ["AC-1", "AC-2"]);
   assert.ok(existsSync(join(out, "site", "index.html")));
-  for (const f of ["spec.json", "review.json", "report.json"]) assert.equal(existsSync(join(out, "site", f)), false, f);
+  for (const f of ["spec.json", "review.json", "report.json", "package.json"]) assert.equal(existsSync(join(out, "site", f)), false, f);
   const { hasFactoryCsp } = await import("../scripts/lib/harden.mjs");
   assert.ok(hasFactoryCsp(readFileSync(join(out, "site", "index.html"), "utf8")), "la page publiée porte la politique de l'usine");
 });
