@@ -1,0 +1,32 @@
+{
+  "runId": "qualite-2026-10-17T14-19-53-492Z-8739f191",
+  "atelier": "qualite",
+  "prompt": "factory/prompts/review.md",
+  "model": "haiku",
+  "capUsd": 0.4214,
+  "remainingBeforeUsd": 0.8429,
+  "usd": 0.004956925,
+  "status": "ok",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 4,
+  "permissionDenials": [],
+  "report": {
+    "status": "ok",
+    "summary": "Revue de Checklist Valise terminée. node test.mjs passe (16 contrôles). Score 5/10 avec 2 défauts bloquants : AC-5 (affichage du message d'erreur seulement vérifié par grep) et AC-4 (branche de rechargement initApp non testée). Aucun contenu interdit, aucune ressource externe détectée. Fichiers écrits : review.json uniquement, plus ce rapport.",
+    "blockers": [
+      "AC-5 : affichage réel du message « Indique une durée entre 1 et 30 nuits » non testé (grep seulement)",
+      "AC-4 : restauration des cases au rechargement (initApp) non testée"
+    ]
+  },
+  "stderrTail": ""
+}

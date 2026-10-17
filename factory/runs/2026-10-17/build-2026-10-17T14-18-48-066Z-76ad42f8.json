@@ -1,0 +1,29 @@
+{
+  "runId": "build-2026-10-17T14-18-48-066Z-76ad42f8",
+  "atelier": "build",
+  "prompt": "dist/prompts/build-checklist-valise.md",
+  "model": "haiku",
+  "capUsd": 1.133,
+  "remainingBeforeUsd": 2.266,
+  "usd": 0.011224095,
+  "status": "ok",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 6,
+  "permissionDenials": [],
+  "report": {
+    "status": "ok",
+    "summary": "Checklist Valise construite dans le dossier courant : index.html, style.css, app.js (fonctions de calcul exportées, branchement DOM conditionné à typeof document), test.mjs. `node test.mjs` affiche ok HTML-* (garde-fous CSP/HTML) puis ok AC-1 à ok AC-6 et sort avec le code 0. Aucun paquet installé, aucun script/style en ligne, aucun attribut style ou on*, aucune requête réseau. spec.json non modifié, pied de page légal non ajouté. Limite : le comportement DOM (clics, rechargement réel du navigateur) n'est pas exécuté par les tests Node ; il est vérifié par la logique de persistance simulée (stockage mémoire) et par la lecture du code.",
+    "blockers": []
+  },
+  "stderrTail": ""
+}

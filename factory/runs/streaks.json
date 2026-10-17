@@ -5,5 +5,7 @@
   "build:dist/prompts/build-convertisseur-cuisine.md": 0,
   "qualite:factory/prompts/review.md": 0,
   "build:dist/prompts/spec-tirage-equipes.md": 0,
-  "build:dist/prompts/build-tirage-equipes.md": 0
+  "build:dist/prompts/build-tirage-equipes.md": 0,
+  "build:dist/prompts/spec-checklist-valise.md": 0,
+  "build:dist/prompts/build-checklist-valise.md": 0
 }

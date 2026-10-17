@@ -1,0 +1,29 @@
+{
+  "runId": "build-2026-10-17T14-18-30-661Z-5dd6b21a",
+  "atelier": "build",
+  "prompt": "dist/prompts/spec-checklist-valise.md",
+  "model": "haiku",
+  "capUsd": 1.1342,
+  "remainingBeforeUsd": 2.2683,
+  "usd": 0.00237609,
+  "status": "ok",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 2,
+  "permissionDenials": [],
+  "report": {
+    "status": "ok",
+    "summary": "Spécification de Checklist Valise rédigée dans spec.json : générateur de liste de valise (durée, saison, type de séjour), cases à cocher avec compteur, persistance localStorage, réinitialisation. Sujet non interdit. Six critères comportementaux testables, sans critère de mise en page ni de console.",
+    "blockers": []
+  },
+  "stderrTail": ""
+}

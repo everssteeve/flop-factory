@@ -1,0 +1,17 @@
+{
+  "slug": "checklist-valise",
+  "status": "building",
+  "attempts": 1,
+  "liveSince": null,
+  "history": [
+    {
+      "at": "2026-10-17T14:21:19.071Z",
+      "decision": "retry",
+      "reasons": [
+        "revue : AC-5 : le message « Indique une durée entre 1 et 30 nuits » n'est vérifié dans test.mjs que par la présence de la chaîne dans app.js et d'un id dans index.html ; aucun test ne vérifie que le message est réellement affiché dans #form-error après une saisie invalide (0 ou 31).",
+        "revue : AC-4 : test.mjs contrôle seulement l'aller-retour saveList/loadList en mémoire. La branche initApp qui relit le stockage au chargement et restaure les cases (render) n'est jamais exercée, donc le rechargement de page n'est pas testé.",
+        "revue : score 5 < 6"
+      ]
+    }
+  ]
+}
