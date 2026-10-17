@@ -15,7 +15,7 @@ import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync } from "node
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadConfig } from "./lib/budget.mjs";
-import { loadIdeas, readStates, pickIdea, validateSpec } from "./lib/apps.mjs";
+import { loadIdeas, readStates, pickIdea, validateSpec, checkDiscovered } from "./lib/apps.mjs";
 import { copyAccepted, NEVER_PUBLISHED, WORKDIR_PACKAGE } from "./lib/site-files.mjs";
 import { runAtelier } from "./run-atelier.mjs";
 
@@ -64,13 +64,68 @@ export function normalizeReview(raw) {
   return { score, blocking, notes: list(raw.notes) };
 }
 
+/** Idées encore constructibles : ni en ligne, ni abandonnées, ni retirées, tentatives restantes. */
+export function buildable(ideas, states, maxAttempts) {
+  return ideas.filter((i) => !states[i.slug] || (states[i.slug].status === "building" && states[i.slug].attempts < maxAttempts));
+}
+
+/**
+ * Atelier Découverte, quand le stock d'idées baisse. Les idées proposées sont
+ * filtrées par du code (forme, doublons, mots interdits) puis ajoutées au
+ * fichier factory/ideas-discovered.json, dans le dépôt local et dans les
+ * enregistrements que le job records valide avant de les écrire sur data.
+ * Un échec de la découverte n'empêche jamais de construire.
+ */
+export function discoverIfNeeded({ root, states, work, records, run, config }) {
+  const d = config.discovery;
+  const ideas = loadIdeas(root);
+  if (buildable(ideas, states, config.pipeline.maxAttempts).length >= d.minBacklog) return null;
+  const dp = join(root, "factory", "ideas-discovered.json");
+  const current = existsSync(dp) ? JSON.parse(readFileSync(dp, "utf8")) : { ideas: [] };
+  if (current.ideas.length >= d.maxDiscovered) return "stock d'idées découvertes plein";
+  const known = ideas.map((i) => `- ${i.slug} : ${i.idea}`).join("\n");
+  const prompt = writePrompt(
+    root,
+    "discovery",
+    render(readFileSync(join(root, "factory", "prompts", "discovery.md"), "utf8"), { KNOWN: known, MAX_SEARCHES: d.maxSearches, MAX_IDEAS: d.maxIdeas }),
+  );
+  const dir = join(work, "_discovery");
+  rmSync(dir, { recursive: true, force: true });
+  const r = run({ atelier: "decouverte", profile: "discovery", prompt, workdir: dir, records, maxTurns: String(d.maxTurns) });
+  if (r.status !== "ok") return `run ${r.status}`;
+  const out = readJson(join(dir, "ideas.json"));
+  const blocklist = JSON.parse(readFileSync(join(root, "factory", "blocklist.json"), "utf8"));
+  const knownSlugs = new Set(ideas.map((i) => i.slug));
+  const accepted = [];
+  const rejected = [];
+  for (const c of (Array.isArray(out?.ideas) ? out.ideas : []).slice(0, d.maxIdeas)) {
+    const problems = checkDiscovered(c, knownSlugs, blocklist);
+    if (problems.length) rejected.push(`${String(c?.slug).slice(0, 30)} : ${problems.join(", ")}`);
+    else {
+      accepted.push({ slug: c.slug, idea: c.idea, evidence: c.evidence });
+      knownSlugs.add(c.slug);
+    }
+  }
+  if (accepted.length) {
+    const next = { ideas: [...current.ideas, ...accepted] };
+    mkdirSync(dirname(dp), { recursive: true });
+    writeFileSync(dp, JSON.stringify(next, null, 2) + "\n");
+    if (records) {
+      mkdirSync(join(records, "factory"), { recursive: true });
+      writeFileSync(join(records, "factory", "ideas-discovered.json"), JSON.stringify(next, null, 2) + "\n");
+    }
+  }
+  return `${accepted.length} idée(s) retenue(s), ${rejected.length} rejetée(s)${rejected.length ? ` : ${rejected.join(" | ").slice(0, 300)}` : ""}`;
+}
+
 export function runPipeline({ root, stateDir, work, records }, deps = {}) {
   const run = deps.runAtelier ?? ((opts) => runAtelier(opts, { root, ...deps.atelierEnv }));
   const config = loadConfig(root);
   const limits = config.pipeline;
   const states = readStates(stateDir);
+  const discovery = discoverIfNeeded({ root, states, work, records, run, config });
   const idea = pickIdea(loadIdeas(root), states, limits.maxAttempts);
-  if (!idea) return { stage: "none", reason: "aucune idée à construire" };
+  if (!idea) return { stage: "none", reason: `aucune idée à construire${discovery ? ` (découverte : ${discovery})` : ""}` };
   // Une app déjà refusée escalateAfterFailures fois passe au modèle d'escalade
   // pour la spec et le build, même si ses runs s'étaient dits « ok ».
   const attempts = states[idea.slug]?.attempts ?? 0;

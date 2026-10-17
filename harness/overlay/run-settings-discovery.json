@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "blockReadsOutsideWorkingDirectories": true,
+    "deny": [
+      "Read(//proc/**)",
+      "Read(//sys/**)",
+      "Read(~/.claude/**)",
+      "WebFetch"
+    ]
+  },
+  "sandbox": {
+    "enabled": true,
+    "allowUnsandboxedCommands": false,
+    "failIfUnavailable": true,
+    "network": {
+      "allowedDomains": []
+    },
+    "filesystem": {
+      "denyRead": [
+        "/proc/*/environ"
+      ]
+    },
+    "credentials": {
+      "envVars": [
+        {
+          "name": "ANTHROPIC_API_KEY",
+          "mode": "deny"
+        }
+      ]
+    }
+  },
+  "$comment": "Réglages de l'atelier Découverte : identiques aux runs de build, sauf WebSearch autorisé. Pas de Bash ni de WebFetch dans cet atelier (voir claude-args.mjs)."
+}

@@ -17,7 +17,13 @@ import { join, dirname, resolve, isAbsolute } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
 import { loadConfig, dayKey, readLedger, runCap, record, costFromResult } from "./lib/budget.mjs";
-import { claudeArgs, claudeEnv, parseOutput, pluginLoaded } from "./lib/claude-args.mjs";
+import { claudeArgs, claudeEnv, parseOutput, pluginLoaded, RUN_TOOLS, DISCOVERY_TOOLS } from "./lib/claude-args.mjs";
+
+/** Profils de run : outils et réglages. Découverte = recherche web sans shell. */
+export const PROFILES = {
+  build: { tools: RUN_TOOLS, settings: "run-settings.json" },
+  discovery: { tools: DISCOVERY_TOOLS, settings: "run-settings-discovery.json" },
+};
 
 /** Durée maximale d'un run, sous le timeout du job pour toujours noter son coût. */
 export const RUN_TIMEOUT_MS = 35 * 60 * 1000;
@@ -92,6 +98,8 @@ export function runAtelier(opts, { root, now = new Date(), spawn = spawnSync, en
   const workdir = isAbsolute(opts.workdir) ? opts.workdir : resolve(root, opts.workdir);
   mkdirSync(workdir, { recursive: true });
   const prompt = readFileSync(join(root, opts.prompt), "utf8");
+  const profile = PROFILES[opts.profile ?? "build"];
+  if (!profile) throw new Error(`profil inconnu : ${opts.profile}`);
   const args = claudeArgs({
     prompt,
     model,
@@ -99,7 +107,8 @@ export function runAtelier(opts, { root, now = new Date(), spawn = spawnSync, en
     maxTurns: Number(opts.maxTurns ?? config.runs.maxTurns),
     pluginDir: join(root, "dist", "plugin"),
     rulesFile,
-    settingsFile: join(root, "harness", "overlay", "run-settings.json"),
+    settingsFile: join(root, "harness", "overlay", profile.settings),
+    tools: profile.tools,
   });
 
   const proc = spawn("claude", args, {

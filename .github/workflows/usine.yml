@@ -19,6 +19,11 @@ on:
   schedule:
     - cron: "17 5 * * *" # 7h17 à Paris en été, 6h17 en hiver
   workflow_dispatch:
+    inputs:
+      redeploy:
+        description: "Republier le site même sans nouvelle app (ex. après activation de la mesure)"
+        type: boolean
+        default: false
 
 concurrency:
   group: usine
@@ -52,8 +57,9 @@ jobs:
       - name: Charger les données
         run: |
           if git fetch --depth 1 origin data 2>/dev/null; then
-            git checkout FETCH_HEAD -- factory/ledger factory/runs factory/apps 2>/dev/null || \
-              git checkout FETCH_HEAD -- factory/ledger factory/runs 2>/dev/null || true
+            for p in factory/ledger factory/runs factory/apps factory/ideas-discovered.json; do
+              git checkout FETCH_HEAD -- "$p" 2>/dev/null || true
+            done
           fi
 
       - name: Arrêt d'urgence
@@ -146,6 +152,12 @@ jobs:
           fi
           npm install --no-save --ignore-scripts "playwright@${PLAYWRIGHT_VERSION}"
           npx playwright install --with-deps chromium
+      # Les idées découvertes vivent sur data : la porte en a besoin pour reconnaître l'app.
+      - name: Charger les idées découvertes
+        run: |
+          if git fetch --depth 1 origin data 2>/dev/null; then
+            git checkout FETCH_HEAD -- factory/ideas-discovered.json 2>/dev/null || true
+          fi
       - uses: actions/download-artifact@v4
         with:
           name: app
@@ -169,6 +181,7 @@ jobs:
       contents: write
     outputs:
       decision: ${{ steps.arbiter.outputs.decision }}
+      killed: ${{ steps.verdicts.outputs.killed }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -198,6 +211,7 @@ jobs:
             mkdir -p factory/ledger factory/runs
             cp -a "$DATA/factory/ledger/." factory/ledger/ 2>/dev/null || true
             cp -a "$DATA/factory/runs/." factory/runs/ 2>/dev/null || true
+            cp "$DATA/factory/ideas-discovered.json" factory/ 2>/dev/null || true
           else
             git worktree add --orphan -b data "$DATA"
           fi
@@ -223,6 +237,14 @@ jobs:
             STAGE=infra; REASON="porte non exécutée ($GATE)"
           fi
           node scripts/arbiter.mjs "$DATA" --slug "$SLUG" --stage "$STAGE" --reason "$REASON" --verdict "$RUNNER_TEMP/verdict"
+      # Verdict J+30 sur l'usage anonyme. Sans mesure configurée : aucun retrait.
+      - name: Verdicts J+30
+        id: verdicts
+        if: always() && steps.ledger.outcome == 'success'
+        env:
+          GOATCOUNTER_CODE: ${{ vars.GOATCOUNTER_CODE }}
+          GOATCOUNTER_TOKEN: ${{ secrets.GOATCOUNTER_TOKEN }}
+        run: node scripts/verdict-j30.mjs "$DATA"
       # Toujours commiter le ledger validé, même si l'arbitre a échoué :
       # une dépense non enregistrée serait dépensée deux fois.
       - name: Commiter sur data
@@ -231,6 +253,7 @@ jobs:
           mkdir -p "$DATA/factory"
           rm -rf "$DATA/factory/ledger" "$DATA/factory/runs"
           cp -a factory/ledger factory/runs "$DATA/factory/"
+          [ -f factory/ideas-discovered.json ] && cp factory/ideas-discovered.json "$DATA/factory/"
           cd "$DATA"
           git config user.name "flop-factory-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -242,7 +265,9 @@ jobs:
 
   deploy:
     needs: [agent, records]
-    if: needs.records.outputs.decision == 'go'
+    if: >-
+      always() && needs.records.result == 'success' &&
+      (needs.records.outputs.decision == 'go' || (needs.records.outputs.killed != '' && needs.records.outputs.killed != '0') || inputs.redeploy)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -260,6 +285,8 @@ jobs:
         with:
           node-version: 22
       - name: Assembler le catalogue
+        env:
+          GOATCOUNTER_CODE: ${{ vars.GOATCOUNTER_CODE }}
         run: |
           git fetch --depth 1 origin data
           git worktree add "$RUNNER_TEMP/data" FETCH_HEAD
@@ -273,9 +300,12 @@ jobs:
         env:
           URL: ${{ steps.pages.outputs.page_url }}
           SLUG: ${{ needs.agent.outputs.slug }}
+          DECISION: ${{ needs.records.outputs.decision }}
         run: |
+          # Nouvelle app : on vérifie sa page. Sinon (retrait, republication) : le catalogue.
+          if [ "$DECISION" = "go" ]; then TARGET="${URL}apps/${SLUG}/"; MARK="ff-legal"; else TARGET="$URL"; MARK="Flop Factory"; fi
           for i in 1 2 3 4 5 6 7 8 9 10; do
-            if curl -fsS "${URL}apps/${SLUG}/" | grep -q "ff-legal"; then echo "En ligne : ${URL}apps/${SLUG}/"; exit 0; fi
+            if curl -fsS "$TARGET" | grep -q "$MARK"; then echo "En ligne : $TARGET"; exit 0; fi
             sleep 15
           done
           echo "L'app publiée ne répond pas correctement." >&2

@@ -4,6 +4,10 @@
 // pied de page légal ajouté par l'usine. Aucun code d'agent n'est exécuté ici ;
 // les textes venus des specs sont échappés.
 //
+// Avec GOATCOUNTER_CODE, chaque app reçoit le compteur d'usage anonyme de
+// l'usine (voir lib/measure.mjs) et sa politique de sécurité s'ouvre à cette
+// seule origine d'image. Sans, aucune mesure.
+//
 //   node scripts/assemble-site.mjs <data-dir> <out-dir>
 
 import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync } from "node:fs";
@@ -13,6 +17,7 @@ import { loadConfig } from "./lib/budget.mjs";
 import { readStates, escapeHtml as e } from "./lib/apps.mjs";
 import { copyAccepted } from "./lib/site-files.mjs";
 import { harden, CSP_META } from "./lib/harden.mjs";
+import { measureCode, countOrigin, COUNTER_JS, counterTag } from "./lib/measure.mjs";
 
 const CSS = `:root{color-scheme:light dark;--bg:#fafaf7;--fg:#1d1d1b;--muted:#5b5b57;--card:#fff;--line:#e2e2dc;--accent:#2f5d50}
 @media (prefers-color-scheme:dark){:root{--bg:#161615;--fg:#ededea;--muted:#a3a39d;--card:#1f1f1d;--line:#33332f;--accent:#8cc5b2}}
@@ -38,8 +43,15 @@ function page(title, body) {
   return `<!doctype html><html lang="fr"><head><meta charset="utf-8">${CSP_META}<meta name="viewport" content="width=device-width, initial-scale=1"><title>${e(title)}</title><link rel="stylesheet" href="site.css"></head><body>${body}</body></html>\n`;
 }
 
-export function assemble(root, data, out) {
+/** Méta description (pitch de la spec) ajoutée aux pages d'app, pour les moteurs de recherche et les partages. */
+export function injectDescription(html, text) {
+  if (/<meta[^>]+name=["']description["']/i.test(html)) return html;
+  return html.replace(/<\/title>/i, () => `</title><meta name="description" content="${e(text)}">`);
+}
+
+export function assemble(root, data, out, { env = process.env } = {}) {
   const config = loadConfig(root);
+  const origin = countOrigin(measureCode(env));
   rmSync(out, { recursive: true, force: true });
   mkdirSync(out, { recursive: true });
   const live = Object.values(readStates(data))
@@ -51,7 +63,9 @@ export function assemble(root, data, out) {
     const { problems } = copyAccepted(join(data, "apps", s.slug), dest, config.pipeline, new Set(["test.mjs"]));
     if (problems.length) throw new Error(`${s.slug} : ${problems.join(" ; ")}`);
     const index = join(dest, "index.html");
-    writeFileSync(index, injectFooter(harden(readFileSync(index, "utf8")), legalFooter(config, "../../")));
+    let html = injectDescription(harden(readFileSync(index, "utf8"), { countOrigin: origin }), s.spec.pitch);
+    html = injectFooter(html, legalFooter(config, "../../") + (origin ? counterTag("../../", origin, s.slug) : ""));
+    writeFileSync(index, html);
   }
 
   const items = live
@@ -74,12 +88,24 @@ export function assemble(root, data, out) {
 <h2>Éditeur</h2><p>${e(config.publisher.name)}, ${e(config.publisher.status)}${config.publisher.address ? `, ${e(config.publisher.address)}` : ""}.${config.publisher.contact ? ` Contact : ${e(config.publisher.contact)}.` : ""}</p>
 <h2>Hébergeur</h2><p>GitHub, Inc., 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, États-Unis (service GitHub Pages).</p>
 <h2>Fonctionnement</h2><p>Les apps de ce site sont conçues, codées, testées et publiées automatiquement par des modèles d'IA, sous des contrôles automatiques. Elles sont fournies telles quelles, sans garantie.</p>
-<h2>Données personnelles</h2><p>Les apps ne déposent aucun cookie et n'envoient aucune donnée à un serveur : ce que vous saisissez reste dans votre navigateur. L'hébergeur peut journaliser les accès techniques (adresse IP) pour la sécurité du service.</p>
+<h2>Données personnelles</h2><p>Les apps ne déposent aucun cookie et n'envoient à aucun serveur ce que vous saisissez : vos données restent dans votre navigateur. L'hébergeur peut journaliser les accès techniques (adresse IP) pour la sécurité du service.</p>${
+        origin
+          ? `<h2>Mesure d'audience</h2><p>Pour savoir quelles apps sont utilisées (et retirer les autres), chaque app signale de façon anonyme son ouverture puis sa première utilisation au service GoatCounter. Ce signal ne contient que le nom de l'app : ni cookie, ni identifiant, ni contenu saisi. Il n'est pas envoyé si votre navigateur demande à ne pas être suivi (Do Not Track ou Global Privacy Control).</p>`
+          : ""
+      }
 </main><footer><a href="index.html">Retour aux apps</a></footer>`,
     ),
   );
   writeFileSync(join(out, "site.css"), CSS + "\n");
   writeFileSync(join(out, "ff-legal.css"), FOOTER_CSS + "\n");
+  if (origin) writeFileSync(join(out, "ff-count.js"), COUNTER_JS);
+  const base = config.site.baseUrl;
+  const urls = ["", "mentions-legales.html", ...live.map((s) => `apps/${s.slug}/`)];
+  writeFileSync(
+    join(out, "sitemap.xml"),
+    `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((u) => `  <url><loc>${e(base + u)}</loc></url>`).join("\n")}\n</urlset>\n`,
+  );
+  writeFileSync(join(out, "robots.txt"), `User-agent: *\nAllow: /\nSitemap: ${base}sitemap.xml\n`);
   return live.map((s) => s.slug);
 }
 

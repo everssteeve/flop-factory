@@ -33,8 +33,9 @@
     "maxTurns": 60
   },
   "kill": {
+    "$comment": "Usage anonyme : visiteurs ayant réellement utilisé l'app (événement used-<slug>) sur la fenêtre. Jamais de kill sans mesure couvrant toute la fenêtre.",
     "afterDays": 30,
-    "metric": "signups",
+    "metric": "used",
     "minimum": 20
   },
   "publisher": {
@@ -61,5 +62,16 @@
     "buildMaxTurns": 60,
     "specMaxTurns": 15,
     "reviewMaxTurns": 20
+  },
+  "site": {
+    "baseUrl": "https://everssteeve.github.io/flop-factory/"
+  },
+  "discovery": {
+    "$comment": "La Découverte tourne quand il reste moins de minBacklog idées constructibles.",
+    "minBacklog": 2,
+    "maxIdeas": 5,
+    "maxSearches": 8,
+    "maxTurns": 20,
+    "maxDiscovered": 200
   }
 }

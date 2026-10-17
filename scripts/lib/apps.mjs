@@ -10,10 +10,14 @@ import { join } from "node:path";
 
 export const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const AC_ID = /^AC-[1-9][0-9]?$/;
-export const STATUSES = ["building", "live", "abandoned"];
+export const STATUSES = ["building", "live", "abandoned", "killed"];
 
+/** Idées posées à la main (main), puis idées découvertes par l'usine (branche data), dans cet ordre. */
 export function loadIdeas(root) {
-  const { ideas } = JSON.parse(readFileSync(join(root, "factory", "ideas.json"), "utf8"));
+  const { ideas: curated } = JSON.parse(readFileSync(join(root, "factory", "ideas.json"), "utf8"));
+  const dp = join(root, "factory", "ideas-discovered.json");
+  const discovered = existsSync(dp) ? JSON.parse(readFileSync(dp, "utf8")).ideas : [];
+  const ideas = [...curated, ...discovered];
   const seen = new Set();
   for (const i of ideas) {
     if (!SLUG.test(i.slug) || i.slug.length > 30) throw new Error(`slug d'idée invalide : ${i.slug}`);
@@ -22,6 +26,30 @@ export function loadIdeas(root) {
     seen.add(i.slug);
   }
   return ideas;
+}
+
+/**
+ * Motif de la liste noire → expression régulière. `\b` y marque une frontière de
+ * mot qui tient compte des lettres accentuées (le `\b` de JavaScript ne les voit pas).
+ */
+export function keywordRegex(k) {
+  return new RegExp(k.replace(/^\\b/, "(?<!\\p{L})").replace(/\\b$/, "(?!\\p{L})").replace(/\\b/g, "(?<!\\p{L})"), "iu");
+}
+
+/** Une idée trouvée sur le web passe-t-elle les filtres de l'usine ? Renvoie les problèmes. */
+export function checkDiscovered(c, knownSlugs, blocklist) {
+  const p = [];
+  if (!c || typeof c !== "object") return ["idée illisible"];
+  const keys = Object.keys(c).sort().join(",");
+  if (keys !== "evidence,idea,slug") p.push(`champs inattendus : ${keys}`);
+  if (typeof c.slug !== "string" || !SLUG.test(c.slug) || c.slug.length < 3 || c.slug.length > 30) p.push(`slug invalide : ${c.slug}`);
+  else if (knownSlugs.has(c.slug)) p.push(`déjà connue : ${c.slug}`);
+  if (typeof c.idea !== "string" || c.idea.length < 40 || c.idea.length > 400) p.push("idée : 40 à 400 caractères");
+  if (typeof c.evidence !== "string" || c.evidence.length < 10 || c.evidence.length > 300) p.push("evidence : 10 à 300 caractères");
+  const text = `${c.slug} ${c.idea} ${c.evidence}`;
+  for (const k of blocklist.keywords ?? []) if (keywordRegex(k).test(text)) p.push(`sujet interdit (${k})`);
+  if (/https?:|www\.|<|>|\{\{/.test(c.idea)) p.push("idée : ni lien, ni balise, ni gabarit");
+  return p;
 }
 
 export function newState(slug) {

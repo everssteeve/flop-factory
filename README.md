@@ -2,7 +2,7 @@
 
 Une usine qui crée des webapps à la chaîne, sans intervention humaine, dans un budget fixe de tokens par jour. Elle produit beaucoup, mesure, et tue vite ce qui ne prend pas.
 
-Phase actuelle : **Chaîne de build** (phase 2). Porte de sortie : trois apps en ligne, construites à partir d'une idée sans humain. Le Socle (une app livrée sans humain) est validé depuis le 17 octobre 2026.
+Phase actuelle : **Marché** (phase 3). Porte de sortie : une idée trouvée par l'usine elle-même mise en ligne, et un premier verdict J+30 rendu automatiquement. Validées : Socle (17 octobre 2026) et Chaîne de build (trois apps en ligne le 17 octobre 2026).
 
 ## Comment ça tourne
 
@@ -17,6 +17,13 @@ Chaque matin, le workflow [Usine](.github/workflows/usine.yml) fait avancer une 
 2. **gate** : il repart d'un checkout neuf en lecture seule. Il revalide la spec et contrôle les fichiers (à plat, extensions et taille bornées, aucune ressource externe, aucun secret, aucun cookie). Il rejoue `test.mjs` dans bubblewrap, sans réseau, environnement vidé, sur une copie jetable : chaque critère doit être vérifié. Enfin il charge l'app dans Chromium à 375 et 1280 px. Il refuse si la page fait une erreur JS, une requête vers un autre site, déborde, ou si la page est vide.
 3. **records** : c'est le seul job qui écrit, sur la branche `data`. Il valide le ledger, puis l'**arbitre** décide. L'arbitre est du code, pas un modèle. Il dit *go* si la porte est passée, si la revue n'a aucun défaut bloquant et si sa note est au moins égale à `reviewMinScore`. Sinon il dit *retry*, et le modèle monte d'un cran après deux échecs. Après `maxAttempts` échecs, il dit *abandon*. Un arrêt ou un budget épuisé ne consomme pas de tentative.
 4. **deploy** : sur *go*, il assemble le site depuis `data`. Il produit le catalogue, les mentions légales, et chaque app sous `apps/<slug>/` avec le pied de page légal ajouté par l'usine. Il publie le tout sur GitHub Pages et vérifie que l'app répond en ligne.
+
+## Marché : idées, mesure, verdict
+
+- **Découverte** : quand il reste moins de `discovery.minBacklog` idées constructibles, l'atelier Découverte cherche sur le web de petits besoins du quotidien. Il n'a ni shell ni récupération de pages, seulement la recherche web. Ses idées passent un filtre de code : forme, doublons, aucun lien, mots interdits de [`blocklist.json`](factory/blocklist.json). Elles sont ensuite ajoutées à `factory/ideas-discovered.json` sur `data`, après les idées posées à la main.
+- **Mesure** : avec la variable `GOATCOUNTER_CODE`, chaque app reçoit le compteur de l'usine (`ff-count.js`). Il signale l'ouverture de l'app, puis une seule fois sa première utilisation réelle (clic, saisie ou touche). Il ne signale jamais le contenu saisi, n'utilise aucun cookie et se tait si le navigateur demande à ne pas être suivi. La politique de sécurité ne s'ouvre qu'à cette image.
+- **Verdict J+30** : le job records lit, avec le secret `GOATCOUNTER_TOKEN`, combien de visiteurs ont utilisé chaque app. En dessous de `kill.minimum` sur `kill.afterDays` jours, l'app est retirée du catalogue. Aucun retrait sans mesure configurée, sans mesure couvrant toute la fenêtre, ou si l'API ne répond pas.
+- **Référencement** : chaque app reçoit une méta description (le pitch de sa spec). Le site publie aussi `sitemap.xml` et `robots.txt`.
 
 ## Ce qui protège l'usine
 
@@ -42,6 +49,7 @@ Risque résiduel assumé : le processus Claude Code détient la clé API pour ap
 3. Settings > Pages > Source : **GitHub Actions**.
 4. Settings > Rules : le ruleset « Protection de main » exige une PR, une approbation et la CI verte. Aucun workflow ne peut le contourner, pas même le futur cerveau. Le propriétaire peut fusionner ses propres PR sans approbation, mais jamais pousser directement. Le ledger et les journaux vivent sur la branche `data`, seule branche que le bot écrit.
 5. Actions > Usine > Run workflow pour un premier passage.
+6. Mesure d'usage : créer un site sur goatcounter.com, puis ajouter la variable `GOATCOUNTER_CODE` (le sous-domaine) et le secret `GOATCOUNTER_TOKEN`, une clé API limitée à la lecture des statistiques. Relancer ensuite l'Usine avec « redeploy » coché pour poser le compteur sur les apps déjà en ligne.
 
 ## Développer
 
