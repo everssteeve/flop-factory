@@ -1,0 +1,67 @@
+# /add-stripe
+
+Ajoute les **paiements en ligne** à votre app via Stripe Checkout. Pour vendre des produits, accepter des dons, gérer des abonnements.
+
+## Quand l'utiliser
+
+- Vous voulez vendre quelque chose en ligne : une formation, un produit, une prestation, un abonnement mensuel/annuel
+- Vous voulez accepter des dons ou des pré-commandes
+- Vous voulez gérer un système d'achat unique ou récurrent
+
+## Comment ça se passe
+
+1. **Vérification** : si Stripe est déjà en place, Hypervibe vous propose un menu pour passer du mode test au mode live, régénérer les clés, mettre à jour le webhook secret, etc.
+
+2. **Question produit** : Hypervibe vous demande **ce que vous voulez faire payer** :
+  - Achat unique (formation, livre, prestation à l'unité…)
+  - Abonnement récurrent (SaaS mensuel/annuel, accès membre…)
+  - Mix des deux
+  - Vous ne savez pas encore (l'infra est quand même posée, vous pourrez définir les produits plus tard)
+
+3. **Installation** : Hypervibe installe le SDK Stripe (`stripe`) et la CLI Stripe si nécessaire. Si vous avez plusieurs comptes Stripe, elle vous fait d'abord confirmer celui qui encaissera les paiements de ce projet.
+
+4. **Récupération des clés test** : Hypervibe vous explique la différence entre **mode test** (cartes bidon, aucun vrai paiement) et **mode live** (vrais paiements). Vous restez en test pour démarrer. Vous récupérez deux clés depuis dashboard.stripe.com/test/apikeys et vous les collez : `Publishable key` (`pk_test_...`) et `Secret key` (`sk_test_...`).
+
+5. **Configuration automatique** : Hypervibe scaffold :
+  - Un client Stripe serveur (`src/server/stripe.ts`)
+  - Un webhook (`src/app/api/webhooks/stripe/route.ts`) qui vérifie la signature des messages venant de Stripe
+  - Un router tRPC `payment` avec une procédure `createCheckoutSession`
+
+6. **Capture automatique du webhook secret** : Hypervibe lance temporairement `stripe listen` pour capturer le `STRIPE_WEBHOOK_SECRET` (sans que vous ayez à le copier-coller), puis ferme l'écoute.
+
+7. **CGV (optionnel)** : Hypervibe vous propose de générer vos Conditions Générales de Vente (obligatoires en France pour tout site qui vend). Elle vous pose des questions sur votre offre (type, prix, rétractation, remboursement, contact) et génère la page `/cgv` complète, avec son lien à côté du bouton de paiement.
+
+8. **Pages produits + checkout (optionnel)** : Hypervibe vous propose de construire les pages `/pricing`, `/payment/success`, `/payment/cancel` avec vos vrais produits, branchées sur Stripe.
+
+9. **Emails après un achat (optionnel)** : si l'envoi d'emails est en place sur votre projet, Hypervibe vous propose une confirmation pour l'acheteur et une notification pour vous à chaque vente. Sinon, elle vous prévient que vous ne serez pas averti des ventes.
+
+## Ce que ça crée pour vous
+
+- Les variables `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_SECRET_KEY` (dans Vercel + `.env`)
+- `STRIPE_WEBHOOK_SECRET` uniquement dans `.env` local (le webhook prod aura sa propre clé)
+- Un client Stripe réutilisable dans tout votre code
+- Un endpoint webhook sécurisé qui peut écouter les événements Stripe (paiement réussi, refund, etc.)
+- Une procédure tRPC prête à l'emploi pour créer une session de checkout
+- Optionnel : vos CGV générées
+- Optionnel : vos pages produits + checkout
+- Optionnel : les emails envoyés après chaque achat
+
+## Prérequis
+
+- Le projet doit être en Next.js (typiquement initialisé par `/bootstrap`)
+- Un compte Stripe (gratuit). La CLI Stripe sera installée par Hypervibe si manquante
+- Pour encaisser de vrais paiements, le plan Vercel **Pro**, payant : Vercel réserve son plan gratuit Hobby aux projets personnels non commerciaux. Hypervibe vérifie votre plan et vous prévient avant le passage en live
+
+## Astuces
+
+{{callout:warning|Restez en mode TEST pour démarrer}}
+**Ne passez pas en live tant que tout ne fonctionne pas en test.** Le mode test utilise des cartes bidon (`4242 4242 4242 4242`, n'importe quelle date future, n'importe quel CVC). Aucun vrai argent ne circule. C'est par là qu'on commence, toujours.
+{{/callout}}
+
+{{callout:tip|Pour tester en local}}
+Quand vous voulez essayer un paiement sur votre ordinateur, dites-le simplement : Claude lance le site et le relais qui lui transmet les notifications de Stripe, vérifie qu'un produit est achetable en mode test, puis vous donne les liens et la carte de test. Vous ne tapez aucune commande. Le `STRIPE_WEBHOOK_SECRET` du `.env` est déjà celui de ce relais, et quand Hypervibe a relié ce projet à un compte Stripe qui lui est propre, le `CLAUDE.md` du projet dit à Claude lequel.
+{{/callout}}
+
+{{callout:info|Pour passer en live}}
+Quand vous êtes prêt à encaisser de vrais paiements, dites simplement à Hypervibe : *"passe Stripe en live"*. Elle vous guide étape par étape (récupération des clés `pk_live_...` / `sk_live_...`, création du webhook production, push des clés sur Vercel, test avec un vrai paiement de 1€ que vous remboursez derrière). Avant la bascule, elle vous rappelle de vérifier le nom que verra l'acheteur et vous propose de retirer les commandes laissées par vos essais. La procédure complète est aussi dans le `CLAUDE.md` de votre projet.
+{{/callout}}

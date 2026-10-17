@@ -1,0 +1,840 @@
+#!/usr/bin/env node
+// update-privacy-policy.mjs - Idempotently add or remove subprocessors in
+// the project's RGPD subprocessors registry.
+//
+// Architecture:
+//   - Data lives in `<web-root>/src/lib/subprocessors.json` (just an array of
+//     entries). The script edits this file deterministically.
+//   - A thin TS wrapper at `<web-root>/src/lib/subprocessors.ts` re-exports
+//     the JSON with a typed signature. The page imports from the TS file.
+//   - The page itself (`src/app/.../politique-de-confidentialite/page.tsx`)
+//     is generated once by /bootstrap as a pure renderer over the registry.
+//     It is never touched by this script - only the data file is.
+//
+// Usage:
+//   node update-privacy-policy.mjs --add stripe
+//   node update-privacy-policy.mjs --add neon --add resend
+//   node update-privacy-policy.mjs --remove brevo
+//   node update-privacy-policy.mjs --entry <file.json>   (a full entry, for a service outside the
+//        catalogue that a project documents for itself after /rgpd-audit)
+//   node update-privacy-policy.mjs --list
+//   node update-privacy-policy.mjs --catalog
+//
+// Runs from the project root (where package.json or apps/web/package.json lives).
+
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { isPrivateTool, registryFile } from "./privacy/layout.mjs";
+import { join, dirname } from "node:path";
+
+// ─── Catalogue des sous-traitants connus ──────────────────────────────────
+// Les valeurs racine (purpose, dataTypes, retention, legalBasis,
+// transferMechanism) sont en français par défaut (la PdC est en français
+// quand le projet est mono-lingue).
+//
+// Chaque entrée a un bloc optionnel `i18n: { <locale>: { ... } }` avec les
+// traductions des cinq champs textuels. La page i18n de PdC pioche dans
+// `entry.i18n[locale]` avec fallback sur les valeurs racine. Anglais fourni
+// d'usine ; pour ajouter une autre langue (es, de, etc.), étendre `i18n`.
+//
+// Les entrées correspondent une-pour-une aux skills /add-* du plugin.
+const CATALOG = {
+  vercel: {
+    name: "Vercel Inc.",
+    address: "440 N Barranca Ave #4133, Covina, CA 91723, USA",
+    country: "US",
+    purpose: "Hébergement du site et exécution des fonctions serveur (région Frankfurt - fra1)",
+    dataTypes: ["Adresses IP", "Logs serveur", "Cookies de session"],
+    retention: "30 jours pour les logs",
+    legalBasis: "Intérêt légitime (art. 6.1.f RGPD)",
+    isEUResident: false,
+    transferMechanism: "Data Privacy Framework UE-États-Unis (entité certifiée). Clauses contractuelles types (CCT) en plus avec le DPA du fournisseur, réservé aux offres Pro et Enterprise. Fonctions exécutées en UE (Frankfurt) mais entité juridique américaine",
+    privacyUrl: "https://vercel.com/legal/privacy-policy",
+    dpaUrl: "https://vercel.com/legal/dpa",
+    i18n: {
+      en: {
+        purpose: "Hosting and serverless function execution (Frankfurt region - fra1)",
+        dataTypes: ["IP addresses", "Server logs", "Session cookies"],
+        retention: "30 days for logs",
+        legalBasis: "Legitimate interest (Art. 6.1.f GDPR)",
+        transferMechanism: "EU-US Data Privacy Framework (certified entity). Standard Contractual Clauses (SCC) in addition through the provider's DPA, available on the Pro and Enterprise plans only. Functions run in the EU (Frankfurt) but legal entity is US-based",
+      },
+    },
+  },
+  neon: {
+    name: "Databricks, Inc. (Neon)",
+    address: "160 Spear Street, 13th Floor, San Francisco, CA 94105, USA",
+    country: "US",
+    purpose: "Hébergement de la base de données PostgreSQL",
+    dataTypes: ["Toutes les données applicatives stockées en base"],
+    retention: "Durée de vie du compte (suppression sur demande)",
+    legalBasis: "Exécution du contrat (art. 6.1.b RGPD)",
+    isEUResident: false,
+    transferMechanism: "Clauses contractuelles types (CCT). Région de la base configurable (eu-central-1 disponible)",
+    privacyUrl: "https://neon.tech/privacy-policy",
+    dpaUrl: "https://neon.tech/dpa",
+    i18n: {
+      en: {
+        purpose: "PostgreSQL database hosting",
+        dataTypes: ["All application data stored in the database"],
+        retention: "Account lifetime (deletion on request)",
+        legalBasis: "Contract performance (Art. 6.1.b GDPR)",
+        transferMechanism: "Standard Contractual Clauses (SCC). Database region configurable (eu-central-1 available)",
+      },
+    },
+  },
+  stripe: {
+    name: "Stripe Payments Europe, Limited",
+    address: "1 Grand Canal Street Lower, Grand Canal Dock, Dublin, Irlande",
+    country: "IE",
+    purpose: "Traitement des paiements par carte bancaire",
+    dataTypes: [
+      "Nom",
+      "Email",
+      "Adresse de facturation",
+      "Informations de paiement (les numéros de carte ne transitent pas par notre serveur, saisie directe chez Stripe)",
+    ],
+    retention: "Durée légale comptable (10 ans en France)",
+    legalBasis: "Exécution du contrat (art. 6.1.b RGPD) + obligation légale (art. 6.1.c)",
+    isEUResident: true,
+    transferMechanism: "Données techniques peuvent être transférées à Stripe, Inc. (USA) via Clauses contractuelles types",
+    privacyUrl: "https://stripe.com/privacy",
+    dpaUrl: "https://stripe.com/legal/dpa",
+    i18n: {
+      en: {
+        purpose: "Card payment processing",
+        dataTypes: [
+          "Name",
+          "Email",
+          "Billing address",
+          "Payment information (card numbers never transit through our server, entered directly with Stripe)",
+        ],
+        retention: "Legal accounting period (10 years in France)",
+        legalBasis: "Contract performance (Art. 6.1.b GDPR) + legal obligation (Art. 6.1.c)",
+        transferMechanism: "Technical data may be transferred to Stripe, Inc. (USA) via Standard Contractual Clauses",
+      },
+    },
+  },
+  "google-oauth": {
+    name: "Google Ireland Limited",
+    address: "Gordon House, Barrow Street, Dublin 4, Irlande",
+    country: "IE",
+    purpose: "Authentification via compte Google (OAuth)",
+    dataTypes: ["Email", "Nom", "Photo de profil"],
+    retention: "Durée de vie du compte utilisateur",
+    legalBasis: "Consentement (art. 6.1.a RGPD)",
+    isEUResident: true,
+    transferMechanism: "Transferts possibles vers Google LLC (USA) via Clauses contractuelles types",
+    privacyUrl: "https://policies.google.com/privacy",
+    i18n: {
+      en: {
+        purpose: "Authentication via Google account (OAuth)",
+        dataTypes: ["Email", "Name", "Profile picture"],
+        retention: "User account lifetime",
+        legalBasis: "Consent (Art. 6.1.a GDPR)",
+        transferMechanism: "Possible transfers to Google LLC (USA) via Standard Contractual Clauses",
+      },
+    },
+  },
+  "github-oauth": {
+    name: "GitHub, Inc.",
+    address: "88 Colin P. Kelly Jr. St., San Francisco, CA 94107, USA",
+    country: "US",
+    purpose: "Authentification via compte GitHub (OAuth)",
+    dataTypes: ["Email", "Nom d'utilisateur GitHub", "Photo de profil"],
+    retention: "Durée de vie du compte utilisateur",
+    legalBasis: "Consentement (art. 6.1.a RGPD)",
+    isEUResident: false,
+    transferMechanism: "Clauses contractuelles types (CCT)",
+    privacyUrl: "https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement",
+    i18n: {
+      en: {
+        purpose: "Authentication via GitHub account (OAuth)",
+        dataTypes: ["Email", "GitHub username", "Profile picture"],
+        retention: "User account lifetime",
+        legalBasis: "Consent (Art. 6.1.a GDPR)",
+        transferMechanism: "Standard Contractual Clauses (SCC)",
+      },
+    },
+  },
+  resend: {
+    name: "Resend Inc.",
+    address: "2261 Market Street #4667, San Francisco, CA 94114, USA",
+    country: "US",
+    purpose: "Envoi d'emails transactionnels",
+    dataTypes: ["Email destinataire", "Contenu des emails envoyés"],
+    retention: "30 jours pour les logs d'envoi",
+    legalBasis: "Exécution du contrat / intérêt légitime",
+    isEUResident: false,
+    transferMechanism: "Clauses contractuelles types (CCT)",
+    privacyUrl: "https://resend.com/legal/privacy-policy",
+    dpaUrl: "https://resend.com/legal/dpa",
+    i18n: {
+      en: {
+        purpose: "Transactional email delivery",
+        dataTypes: ["Recipient email", "Content of sent emails"],
+        retention: "30 days for delivery logs",
+        legalBasis: "Contract performance / legitimate interest",
+        transferMechanism: "Standard Contractual Clauses (SCC)",
+      },
+    },
+  },
+  brevo: {
+    name: "Sendinblue SAS (Brevo)",
+    address: "17 rue Salneuve, 75017 Paris, France",
+    country: "FR",
+    purpose: "Envoi d'emails transactionnels et campagnes",
+    dataTypes: ["Email destinataire", "Nom (si fourni)", "Contenu des emails envoyés"],
+    retention: "6 mois pour les logs d'envoi",
+    legalBasis: "Exécution du contrat / intérêt légitime",
+    isEUResident: true,
+    transferMechanism: null,
+    privacyUrl: "https://www.brevo.com/legal/privacypolicy/",
+    dpaUrl: "https://www.brevo.com/legal/data-processing-agreement/",
+    i18n: {
+      en: {
+        purpose: "Transactional email and campaign delivery",
+        dataTypes: ["Recipient email", "Name (if provided)", "Content of sent emails"],
+        retention: "6 months for delivery logs",
+        legalBasis: "Contract performance / legitimate interest",
+      },
+    },
+  },
+  "cloudflare-r2": {
+    name: "Cloudflare, Inc.",
+    address: "101 Townsend Street, San Francisco, CA 94107, USA",
+    country: "US",
+    purpose: "Stockage et distribution de fichiers (objets binaires uploadés)",
+    dataTypes: ["Fichiers uploadés par les utilisateurs", "Métadonnées (nom, type MIME, taille)"],
+    retention: "Durée de vie du compte (suppression sur demande)",
+    legalBasis: "Exécution du contrat (art. 6.1.b RGPD)",
+    isEUResident: false,
+    transferMechanism: "Clauses contractuelles types (CCT)",
+    privacyUrl: "https://www.cloudflare.com/privacypolicy/",
+    i18n: {
+      en: {
+        purpose: "File storage and distribution (uploaded binary objects)",
+        dataTypes: ["User-uploaded files", "Metadata (name, MIME type, size)"],
+        retention: "Account lifetime (deletion on request)",
+        legalBasis: "Contract performance (Art. 6.1.b GDPR)",
+        transferMechanism: "Standard Contractual Clauses (SCC)",
+      },
+    },
+  },
+  "vercel-analytics": {
+    name: "Vercel Inc. (Vercel Analytics)",
+    address: "440 N Barranca Ave #4133, Covina, CA 91723, USA",
+    country: "US",
+    purpose: "Mesure d'audience anonyme, sans cookies",
+    dataTypes: ["Pages visitées", "Pays (géolocalisation approximative)", "User-Agent"],
+    retention: "Données agrégées, pas de données identifiantes stockées",
+    legalBasis: "Intérêt légitime, mesure d'audience anonyme dispensée de consentement (recommandation CNIL)",
+    isEUResident: false,
+    transferMechanism: "Data Privacy Framework UE-États-Unis (entité certifiée). Clauses contractuelles types (CCT) en plus avec le DPA du fournisseur, réservé aux offres Pro et Enterprise",
+    privacyUrl: "https://vercel.com/legal/privacy-policy",
+    i18n: {
+      en: {
+        purpose: "Anonymous, cookieless audience measurement",
+        dataTypes: ["Pages visited", "Country (approximate geolocation)", "User-Agent"],
+        retention: "Aggregated data, no identifying data stored",
+        legalBasis: "Legitimate interest, anonymous audience measurement exempt from consent (CNIL guidance)",
+        transferMechanism: "EU-US Data Privacy Framework (certified entity). Standard Contractual Clauses (SCC) in addition through the provider's DPA, available on the Pro and Enterprise plans only",
+      },
+    },
+  },
+  "google-analytics": {
+    name: "Google Ireland Limited (Google Analytics)",
+    address: "Gordon House, Barrow Street, Dublin 4, Irlande",
+    country: "IE",
+    purpose: "Mesure d'audience détaillée (avec consentement)",
+    dataTypes: [
+      "Pages visitées",
+      "Durée de session",
+      "Source de trafic",
+      "Données démographiques anonymisées",
+      "Adresse IP anonymisée",
+    ],
+    retention: "14 mois par défaut (configurable)",
+    legalBasis: "Consentement (art. 6.1.a RGPD), soumis au cookie banner",
+    isEUResident: true,
+    transferMechanism: "Transferts possibles vers Google LLC (USA) via Clauses contractuelles types",
+    privacyUrl: "https://policies.google.com/privacy",
+    requiresConsent: true,
+    i18n: {
+      en: {
+        purpose: "Detailed audience measurement (with consent)",
+        dataTypes: [
+          "Pages visited",
+          "Session duration",
+          "Traffic source",
+          "Anonymized demographic data",
+          "Anonymized IP address",
+        ],
+        retention: "14 months by default (configurable)",
+        legalBasis: "Consent (Art. 6.1.a GDPR), gated by the cookie banner",
+        transferMechanism: "Possible transfers to Google LLC (USA) via Standard Contractual Clauses",
+      },
+    },
+  },
+  openrouter: {
+    name: "OpenRouter, Inc.",
+    address: "1111B S Governors Ave STE 27308, Dover, DE 19904, USA",
+    country: "US",
+    purpose:
+      "Routage des appels d'intelligence artificielle vers les modèles retenus (assistant conversationnel, analyse et génération de contenu)",
+    dataTypes: [
+      "Contenu soumis aux fonctionnalités d'IA : messages saisis, documents ou textes analysés",
+    ],
+    retention:
+      "Variable selon le fournisseur de modèle finalement sollicité. Les requêtes sont routées vers des fournisseurs qui n'utilisent pas les données à des fins d'entraînement",
+    legalBasis:
+      "Exécution du contrat / intérêt légitime (selon la fonctionnalité concernée)",
+    isEUResident: false,
+    transferMechanism: "Clauses contractuelles types (CCT)",
+    privacyUrl: "https://openrouter.ai/privacy",
+    dpaUrl: "https://openrouter.ai/terms",
+    i18n: {
+      en: {
+        purpose:
+          "Routing AI calls to the selected models (conversational assistant, content analysis and generation)",
+        dataTypes: [
+          "Content submitted to AI features: entered messages, analysed documents or text",
+        ],
+        retention:
+          "Varies with the model provider ultimately reached. Requests are routed to providers that do not use the data for training",
+        legalBasis:
+          "Performance of the contract / legitimate interest (depending on the feature)",
+        transferMechanism: "Standard contractual clauses (SCC)",
+      },
+    },
+  },
+
+  anthropic: {
+    name: "Anthropic PBC",
+    address: "548 Market Street #84749, San Francisco, CA 94104, USA",
+    country: "US",
+    purpose: "Inférence IA (modèles Claude) pour les fonctionnalités d'agent autonome",
+    dataTypes: ["Variable selon le contexte de l'agent. Voir documentation de chaque agent configuré"],
+    retention: "30 jours côté Anthropic (sauf opt-out)",
+    legalBasis: "Exécution du contrat / intérêt légitime / consentement (selon le contexte)",
+    isEUResident: false,
+    transferMechanism: "Clauses contractuelles types (CCT)",
+    privacyUrl: "https://www.anthropic.com/privacy",
+    dpaUrl: "https://www.anthropic.com/legal/dpa",
+    i18n: {
+      en: {
+        purpose: "AI inference (Claude models) for autonomous agent features",
+        dataTypes: ["Varies by agent context. See documentation of each configured agent"],
+        retention: "30 days on the Anthropic side (unless opted out)",
+        legalBasis: "Contract performance / legitimate interest / consent (depending on context)",
+        transferMechanism: "Standard Contractual Clauses (SCC)",
+      },
+    },
+  },
+  openfreemap: {
+    name: "OpenFreeMap",
+    address: "Projet open source, serveurs dédiés en Hongrie (UE)",
+    country: "HU",
+    purpose:
+      "Affichage des cartes : les tuiles vectorielles sont chargées directement par le navigateur du visiteur",
+    dataTypes: [
+      "Adresse IP du visiteur",
+      "Zone géographique consultée sur la carte",
+    ],
+    retention: "Aucune conservation annoncée au-delà des journaux techniques du serveur",
+    legalBasis: "Intérêt légitime (art. 6.1.f RGPD)",
+    isEUResident: true,
+    transferMechanism:
+      "Aucun transfert hors UE. Projet open source sans contrat de sous-traitance formel : aucune donnée ne lui est transmise volontairement, seule l'adresse IP du visiteur lui parvient, comme pour toute ressource chargée depuis un autre domaine",
+    privacyUrl: "https://openfreemap.org/",
+    i18n: {
+      en: {
+        purpose:
+          "Map rendering: vector tiles are loaded directly by the visitor's browser",
+        dataTypes: ["Visitor IP address", "Map area being viewed"],
+        retention: "No retention announced beyond the server's technical logs",
+        legalBasis: "Legitimate interest (Art. 6.1.f GDPR)",
+        transferMechanism:
+          "No transfer outside the EU. Open source project with no formal data processing agreement: no data is sent to it deliberately, only the visitor's IP reaches it, as with any resource loaded from another domain",
+      },
+    },
+  },
+  cloudflare: {
+    name: "Cloudflare, Inc.",
+    address: "101 Townsend Street, San Francisco, CA 94107, USA",
+    country: "US",
+    purpose:
+      "Gestion du nom de domaine (DNS) et acheminement des emails reçus sur ce domaine vers la boîte de destination (Email Routing)",
+    dataTypes: [
+      "Requêtes DNS",
+      "Adresses de l'expéditeur et du destinataire",
+      "Contenu des messages acheminés",
+    ],
+    retention: "Le temps de l'acheminement vers la boîte de destination",
+    legalBasis: "Exécution du contrat (art. 6.1.b RGPD)",
+    isEUResident: false,
+    transferMechanism: "Clauses contractuelles types (CCT)",
+    privacyUrl: "https://www.cloudflare.com/privacypolicy/",
+    dpaUrl: "https://www.cloudflare.com/cloudflare-customer-dpa/",
+    // Aucune trace dans le dépôt : le DNS et le relais d'emails se configurent
+    // sur le tableau de bord Cloudflare, pas dans le code. L'audit ne peut donc
+    // pas le détecter, et ne doit pas proposer de le retirer pour autant.
+    manuallyDeclared: true,
+    i18n: {
+      en: {
+        purpose:
+          "Domain name management (DNS) and forwarding of emails received on that domain to the destination mailbox (Email Routing)",
+        dataTypes: [
+          "DNS queries",
+          "Sender and recipient addresses",
+          "Content of forwarded messages",
+        ],
+        retention: "For the time it takes to forward the message to its destination",
+        legalBasis: "Contract performance (Art. 6.1.b GDPR)",
+        transferMechanism: "Standard Contractual Clauses (SCC)",
+      },
+    },
+  },
+  "web-push": {
+    name: "Services de notification des navigateurs (Apple, Google, Mozilla)",
+    address: "Selon le navigateur utilisé par la personne",
+    country: "Variable",
+    purpose: "Acheminement des notifications jusqu'à l'appareil de la personne",
+    dataTypes: [
+      "Identifiant d'abonnement de l'appareil",
+      "Contenu de la notification, chiffré",
+    ],
+    retention:
+      "Le temps de la remise, prolongé de quelques jours si l'appareil est hors ligne",
+    legalBasis:
+      "Consentement (art. 6.1.a RGPD) : l'autorisation est demandée par le navigateur, et se retire depuis ses réglages",
+    isEUResident: false,
+    transferMechanism:
+      "Le service qui achemine dépend du navigateur choisi par la personne, pas de l'éditeur du site. Le contenu est chiffré (protocole Web Push, clés VAPID) : seul l'appareil destinataire peut le lire",
+    privacyUrl: "https://www.w3.org/TR/push-api/#privacy-considerations",
+    requiresConsent: true,
+    i18n: {
+      en: {
+        purpose: "Delivering notifications to the person's device",
+        dataTypes: ["Device subscription identifier", "Encrypted notification payload"],
+        retention:
+          "For the time it takes to deliver, extended by a few days if the device is offline",
+        legalBasis:
+          "Consent (Art. 6.1.a GDPR): permission is requested by the browser and revoked from its settings",
+        transferMechanism:
+          "The delivering service depends on the browser the person uses, not on the site publisher. The payload is encrypted (Web Push protocol, VAPID keys): only the destination device can read it",
+      },
+    },
+  },
+  render: {
+    name: "Render Services, Inc.",
+    address: "525 Brannan St #401, San Francisco, CA 94107, USA",
+    country: "US",
+    purpose: "Hébergement de processus en arrière-plan (workers, automatisations)",
+    dataTypes: ["Variable selon les workers déployés"],
+    retention: "Durée de vie du service",
+    legalBasis: "Exécution du contrat (art. 6.1.b RGPD)",
+    isEUResident: false,
+    transferMechanism: "Clauses contractuelles types (CCT)",
+    privacyUrl: "https://render.com/privacy",
+    i18n: {
+      en: {
+        purpose: "Background process hosting (workers, automations)",
+        dataTypes: ["Varies by deployed worker"],
+        retention: "Service lifetime",
+        legalBasis: "Contract performance (Art. 6.1.b GDPR)",
+        transferMechanism: "Standard Contractual Clauses (SCC)",
+      },
+    },
+  },
+  // Documentée le 23/09/2026 : sentry.io/privacy (v3.3.2), DPA v5.1.0 (Schedule 3 : DPF, puis CCT),
+  // docs.sentry.io (data-storage-location, data-retention-periods, data-collected pour Next.js),
+  // fiche Data Privacy Framework n° 5869. Son DPA ne s'applique qu'une fois accepté dans les réglages
+  // de l'organisation Sentry (Legal & Compliance). Le choix de la région est définitif
+// (docs.sentry.io, data-storage-location) : la fiche le dit, puisqu'elle est lue au moment du choix.
+  sentry: {
+    name: "Functional Software, Inc. (Sentry)",
+    address: "45 Fremont Street, 8th Floor, San Francisco, CA 94105, USA",
+    country: "US",
+    purpose: "Suivi des erreurs et des performances de l'application",
+    dataTypes: [
+      "Adresses IP",
+      "Détails des erreurs (pile d'appels, URL, navigateur, système)",
+      "En-têtes, cookies et corps des requêtes (valeurs sensibles masquées)",
+      "Identifiant et email de l'utilisateur (si l'application les renseigne)",
+      "Enregistrements de session masqués (si Session Replay est activé)",
+    ],
+    retention: "Erreurs et enregistrements de session : 30 jours (offre Developer) ou 90 jours (offres payantes) ; traces et journaux : 30 jours",
+    legalBasis: "Intérêt légitime (art. 6.1.f RGPD)",
+    isEUResident: false,
+    transferMechanism: "Data Privacy Framework UE-États-Unis (entité certifiée), clauses contractuelles types en secours. Région de stockage choisie à la création de l'organisation (UE, Francfort, disponible), et définitive : en changer demande une nouvelle organisation. Comptes et métadonnées d'organisation aux États-Unis",
+    privacyUrl: "https://sentry.io/privacy/",
+    dpaUrl: "https://sentry.io/legal/dpa/",
+    i18n: {
+      en: {
+        purpose: "Application error and performance monitoring",
+        dataTypes: [
+          "IP addresses",
+          "Error details (stack trace, URL, browser, OS)",
+          "Request headers, cookies and bodies (sensitive values scrubbed)",
+          "User ID and email (if set by the application)",
+          "Masked session recordings (if Session Replay is enabled)",
+        ],
+        retention: "Errors and session replays: 30 days (Developer plan) or 90 days (paid plans); spans and logs: 30 days",
+        legalBasis: "Legitimate interest (Art. 6.1.f GDPR)",
+        transferMechanism: "EU-US Data Privacy Framework (certified entity), Standard Contractual Clauses as fallback. Storage region chosen when the organization is created (EU, Frankfurt, available), and final: changing it takes a new organization. Accounts and organization metadata stay in the US",
+      },
+    },
+  },
+  // Documentée le 23/09/2026 : conditions et DPA d'avril 2025 (upstash.com/trust, DPA §3.2(B) : DPF,
+  // puis CCT), régions (docs Upstash, global-replication), fiche Data Privacy Framework n° 9423.
+  // Adresse : seule cette fiche DPF en donne une, et elle semble être un domicile ; on n'en publie que
+  // la ville. L'option analytics de @upstash/ratelimit (désactivée par défaut) garde 90 jours.
+  upstash: {
+    name: "Upstash, Inc.",
+    address: "San Jose, CA, USA",
+    country: "US",
+    purpose: "Base de données Redis : limitation du nombre de requêtes et cache",
+    dataTypes: ["Adresses IP (clés de limitation du nombre de requêtes)", "Données mises en cache par l'application"],
+    retention: "Durée d'expiration fixée par l'application (les clés de limitation disparaissent à la fin de leur fenêtre), au plus la durée de vie de la base ; 90 jours pour les statistiques si l'option analytics est activée",
+    legalBasis: "Intérêt légitime (art. 6.1.f RGPD)",
+    isEUResident: false,
+    transferMechanism: "Data Privacy Framework UE-États-Unis (entité certifiée), clauses contractuelles types en secours. Région de la base configurable (eu-central-1 Francfort et eu-west-1 Irlande disponibles), entité juridique américaine",
+    privacyUrl: "https://upstash.com/trust/privacy.pdf",
+    dpaUrl: "https://upstash.com/trust/dpa.pdf",
+    i18n: {
+      en: {
+        purpose: "Redis database: rate limiting and caching",
+        dataTypes: ["IP addresses (rate limiting keys)", "Data cached by the application"],
+        retention: "Expiry set by the application (rate limiting keys are deleted at the end of their window), at most the database lifetime; 90 days for statistics if the analytics option is enabled",
+        legalBasis: "Legitimate interest (Art. 6.1.f GDPR)",
+        transferMechanism: "EU-US Data Privacy Framework (certified entity), Standard Contractual Clauses as fallback. Database region configurable (eu-central-1 Frankfurt and eu-west-1 Ireland available), US legal entity",
+      },
+    },
+  },
+  // Documentée le 23/09/2026 : la documentation officielle de Speed Insights (données collectées,
+  // non rattachées à un visiteur ni à une adresse IP ; historique consultable), la notice de
+  // confidentialité du 01/06/2026 et le DPA de l'hébergeur (DPF et CCT), fiche Data Privacy
+  // Framework n° 6847. Ni la durée de conservation ni le lieu de stockage ne sont publiés : la fiche le dit.
+  "vercel-speed-insights": {
+    name: "Vercel Inc. (Speed Insights)",
+    address: "440 N Barranca Ave #4133, Covina, CA 91723, USA",
+    country: "US",
+    purpose: "Mesure anonyme des performances réelles du site (Core Web Vitals)",
+    dataTypes: ["Page visitée (URL et route)", "Mesures de performance (Core Web Vitals)", "Navigateur, système et type d'appareil", "Type de connexion réseau", "Pays"],
+    retention: "Durée non publiée par le fournisseur ; historique consultable 7 jours (offre gratuite), jusqu'à 30 ou 90 jours (Speed Insights Plus)",
+    legalBasis: "Intérêt légitime (art. 6.1.f RGPD)",
+    isEUResident: false,
+    transferMechanism: "Data Privacy Framework UE-États-Unis (entité certifiée). Clauses contractuelles types (CCT) en plus avec le DPA du fournisseur, réservé aux offres Pro et Enterprise. Lieu de stockage non précisé par le fournisseur, traitement principal aux États-Unis",
+    privacyUrl: "https://vercel.com/legal/privacy-policy",
+    dpaUrl: "https://vercel.com/legal/dpa",
+    i18n: {
+      en: {
+        purpose: "Anonymous real-user performance measurement (Core Web Vitals)",
+        dataTypes: ["Page visited (URL and route)", "Performance metrics (Core Web Vitals)", "Browser, OS and device type", "Network connection type", "Country"],
+        retention: "Not published by the provider; history viewable for 7 days (free tier), up to 30 or 90 days (Speed Insights Plus)",
+        legalBasis: "Legitimate interest (Art. 6.1.f GDPR)",
+        transferMechanism: "EU-US Data Privacy Framework (certified entity). Standard Contractual Clauses (SCC) in addition through the provider's DPA, available on the Pro and Enterprise plans only. Storage location not specified by the provider, primary processing in the US",
+      },
+    },
+  },
+};
+
+// ─── Args parsing ─────────────────────────────────────────────────────────
+const args = process.argv.slice(2);
+const adds = [];
+const removes = [];
+const i18nLocales = [];
+const entryFiles = [];
+let action = "update";
+
+for (let i = 0; i < args.length; i++) {
+  const a = args[i];
+  if (a === "--add") {
+    adds.push(args[++i]);
+  } else if (a === "--remove") {
+    removes.push(args[++i]);
+  } else if (a === "--entry") {
+    entryFiles.push(args[++i]);
+  } else if (a === "--list") {
+    action = "list";
+  } else if (a === "--catalog") {
+    action = "catalog";
+  } else if (a === "--add-i18n") {
+    // Locales come comma-separated, e.g. `--add-i18n en` or `--add-i18n en,es`
+    const raw = args[++i];
+    if (!raw) {
+      console.error("--add-i18n requires a locale argument (e.g. `en` or `en,es`)");
+      process.exit(2);
+    }
+    for (const l of raw.split(",")) {
+      const trimmed = l.trim();
+      if (trimmed) i18nLocales.push(trimmed);
+    }
+    action = "add-i18n";
+  } else if (a === "--help" || a === "-h") {
+    action = "help";
+  } else {
+    console.error(`Unknown argument: ${a}`);
+    process.exit(2);
+  }
+}
+
+if (action === "help") {
+  console.log(`Usage:
+  node update-privacy-policy.mjs --add <key> [--add <key>...]
+  node update-privacy-policy.mjs --remove <key>
+  node update-privacy-policy.mjs --entry <file.json>   (a full entry, checked field by field)
+  node update-privacy-policy.mjs --list
+  node update-privacy-policy.mjs --catalog
+  node update-privacy-policy.mjs --add-i18n <locale>[,<locale>...]
+
+The --add-i18n action enriches existing entries in subprocessors.json with the
+translations available in the in-script CATALOG for the given locales.
+Only entries whose key matches a CATALOG entry are touched.
+
+Known keys:    ${Object.keys(CATALOG).join(", ")}
+Known locales: en`);
+  process.exit(0);
+}
+
+if (action === "catalog") {
+  console.log(JSON.stringify(CATALOG, null, 2));
+  process.exit(0);
+}
+
+// ─── Project root detection ───────────────────────────────────────────────
+function detectWebRoot() {
+  const cwd = process.cwd();
+  if (existsSync(join(cwd, "apps/web/package.json"))) return join(cwd, "apps/web");
+  if (existsSync(join(cwd, "package.json"))) return cwd;
+  console.error("[update-privacy-policy] Cannot detect web root: no package.json at ./ or ./apps/web/");
+  process.exit(1);
+}
+
+const WEB_ROOT = detectWebRoot();
+// Next to the application Next.js serves (privacy/layout.mjs): src/lib/ in a project with src/,
+// lib/ otherwise, or wherever the registry already is.
+const DATA_FILE = registryFile(WEB_ROOT);
+const TS_WRAPPER = DATA_FILE.replace(/\.json$/, ".ts");
+
+// A private tool (marker in CLAUDE.md): an absent registry is not recreated by an /add-* skill.
+// The listings still answer; an existing registry is still kept up to date.
+const PRIVATE_TOOL = !existsSync(DATA_FILE) && isPrivateTool(WEB_ROOT, process.cwd());
+
+// ─── Load registry ────────────────────────────────────────────────────────
+function loadRegistry() {
+  if (!existsSync(DATA_FILE)) return [];
+  try {
+    return JSON.parse(readFileSync(DATA_FILE, "utf8"));
+  } catch (e) {
+    console.error(`[update-privacy-policy] Cannot parse ${DATA_FILE}: ${e.message}`);
+    process.exit(1);
+  }
+}
+
+// ─── Save registry ────────────────────────────────────────────────────────
+function saveRegistry(registry) {
+  mkdirSync(dirname(DATA_FILE), { recursive: true });
+  writeFileSync(DATA_FILE, JSON.stringify(registry, null, 2) + "\n", "utf8");
+
+  // Ensure the TS wrapper is up to date. We rewrite it every time so the
+  // exported type stays in sync with the JSON shape (e.g. when we extend the
+  // schema with new optional fields like `i18n`).
+  const tsContent = `import data from "./subprocessors.json";
+
+/**
+ * Translations for the textual fields of a subprocessor entry. Used when the
+ * project is multilingual (i18n added via /add-i18n). The privacy policy page
+ * picks \`entry.i18n[locale]\` for each field, falling back to the root value
+ * (French by default) when no translation exists for the active locale.
+ */
+export type SubprocessorTranslation = {
+  purpose?: string;
+  dataTypes?: string[];
+  retention?: string;
+  legalBasis?: string;
+  transferMechanism?: string;
+};
+
+export type Subprocessor = {
+  key: string;
+  name: string;
+  address: string;
+  country: string;
+  purpose: string;
+  dataTypes: string[];
+  retention: string;
+  legalBasis: string;
+  isEUResident: boolean;
+  transferMechanism: string | null;
+  privacyUrl: string;
+  dpaUrl?: string;
+  requiresConsent?: boolean;
+  /** Sous-traitant sans trace dans le code (DNS, relais d'emails...) : declare
+   *  a la main, l'audit ne doit jamais proposer de le retirer. */
+  manuallyDeclared?: boolean;
+  /** Fiche propre au projet (hors catalogue), documentee apres /rgpd-audit. */
+  custom?: boolean;
+  /** Les signes qui trahissent ce service dans le projet : l'audit le reconnait. */
+  detect?: { deps?: string[]; depPrefixes?: string[]; env?: string[]; envPrefixes?: string[]; hosts?: string[]; code?: string[]; files?: string[] };
+  /** Les pages officielles du fournisseur d'ou viennent les faits de la fiche. */
+  sources?: string[];
+  /** Date de verification de ces faits (AAAA-MM-JJ). */
+  checkedAt?: string;
+  i18n?: Record<string, SubprocessorTranslation>;
+};
+
+export const SUBPROCESSORS: Subprocessor[] = data;
+`;
+  writeFileSync(TS_WRAPPER, tsContent, "utf8");
+}
+
+// ─── Actions ──────────────────────────────────────────────────────────────
+const registry = loadRegistry();
+
+if (action === "list") {
+  if (registry.length === 0) {
+    console.log("(empty)");
+  } else {
+    for (const e of registry) console.log(`  ${e.key.padEnd(20)} ${e.name}`);
+  }
+  process.exit(0);
+}
+
+if (action === "add-i18n") {
+  // Enrich existing entries in the registry with translations from the CATALOG
+  // for the requested locales. Only entries whose key matches a CATALOG entry
+  // are touched. Useful right after /add-i18n to retrofit translations onto a
+  // project that had its subprocessors registered before i18n was set up.
+  const i18nReports = [];
+  let touched = 0;
+  for (const entry of registry) {
+    const catalogEntry = CATALOG[entry.key];
+    if (!catalogEntry || !catalogEntry.i18n) {
+      i18nReports.push(`skip      ${entry.key} (no translations available in catalog)`);
+      continue;
+    }
+    entry.i18n = entry.i18n ?? {};
+    const addedLocales = [];
+    for (const locale of i18nLocales) {
+      const translation = catalogEntry.i18n[locale];
+      if (!translation) continue;
+      entry.i18n[locale] = translation;
+      addedLocales.push(locale);
+    }
+    if (addedLocales.length > 0) {
+      touched++;
+      i18nReports.push(`updated   ${entry.key} (+${addedLocales.join(", ")})`);
+    } else {
+      i18nReports.push(`skip      ${entry.key} (no translations for ${i18nLocales.join(", ")})`);
+    }
+  }
+  if (touched > 0) {
+    saveRegistry(registry);
+  }
+  console.log(`[update-privacy-policy] ${DATA_FILE}`);
+  for (const r of i18nReports) console.log(`  ${r}`);
+  console.log(`Total: ${touched} entry(ies) updated with translations for: ${i18nLocales.join(", ")}`);
+  process.exit(0);
+}
+
+const reports = [];
+
+if (PRIVATE_TOOL && (adds.length || entryFiles.length)) {
+  console.log("[update-privacy-policy] This project is marked as a private tool (no legal pages, see its CLAUDE.md): no registry is created. Remove the marker the day a page becomes public, then run /rgpd-audit.");
+  process.exit(0);
+}
+
+for (const key of adds) {
+  if (!CATALOG[key]) {
+    console.error(`[update-privacy-policy] Unknown key: ${key}`);
+    console.error(`Known: ${Object.keys(CATALOG).join(", ")}`);
+    console.error("A service outside this list is documented with --entry <file.json>: a full entry, researched from the provider's official pages (see /rgpd-audit).");
+    process.exit(2);
+  }
+  const entry = { key, ...CATALOG[key] };
+  const idx = registry.findIndex((e) => e.key === key);
+  if (idx >= 0) {
+    registry[idx] = entry;
+    reports.push(`replaced  ${key}`);
+  } else {
+    registry.push(entry);
+    reports.push(`added     ${key}`);
+  }
+}
+
+for (const key of removes) {
+  const idx = registry.findIndex((e) => e.key === key);
+  if (idx >= 0) {
+    registry.splice(idx, 1);
+    reports.push(`removed   ${key}`);
+  } else {
+    reports.push(`skip      ${key} (not present)`);
+  }
+}
+
+// Entries supplied whole: a service outside the catalogue, documented for one project after
+// /rgpd-audit. Checked field by field: a registry entry is published as a legal statement, a
+// half-filled one is refused rather than written.
+const REQUIRED_TEXT = ["key", "name", "address", "country", "purpose", "retention", "legalBasis", "privacyUrl"];
+for (const file of entryFiles) {
+  let entry;
+  try {
+    entry = JSON.parse(readFileSync(file, "utf8"));
+  } catch (e) {
+    console.error(`[update-privacy-policy] Cannot read the entry ${file}: ${e.message}`);
+    process.exit(2);
+  }
+  const missingFields = REQUIRED_TEXT.filter((f) => typeof entry?.[f] !== "string" || !entry[f].trim());
+  if (!Array.isArray(entry?.dataTypes) || entry.dataTypes.length === 0) missingFields.push("dataTypes");
+  if (typeof entry?.isEUResident !== "boolean") missingFields.push("isEUResident");
+  if (!(typeof entry?.transferMechanism === "string" || entry?.transferMechanism === null)) missingFields.push("transferMechanism");
+  // The fields that keep an entry alive and traceable (outside review, 3.3.0). Without detect
+  // or manuallyDeclared, the next audit calls a service the project really uses stale, and
+  // proposes to remove it from the policy. Without sources and a date, the yearly re-check the
+  // final summary promises has nothing to start from.
+  const detectSigns = ["deps", "depPrefixes", "env", "envPrefixes", "hosts", "code", "files"];
+  const hasDetect =
+    entry?.detect && typeof entry.detect === "object" && detectSigns.some((k) => Array.isArray(entry.detect[k]) && entry.detect[k].length > 0);
+  if (!hasDetect && entry?.manuallyDeclared !== true) missingFields.push("detect (or manuallyDeclared)");
+  const isHttps = (u) => {
+    try {
+      return new URL(u).protocol === "https:";
+    } catch {
+      return false;
+    }
+  };
+  if (!Array.isArray(entry?.sources) || entry.sources.length === 0 || !entry.sources.every(isHttps)) missingFields.push("sources");
+  const checked = typeof entry?.checkedAt === "string" && /^\d{4}-\d{2}-\d{2}$/.test(entry.checkedAt) ? new Date(`${entry.checkedAt}T00:00:00Z`) : null;
+  if (!checked || Number.isNaN(checked.getTime()) || checked.getTime() > Date.now() + 86400000) missingFields.push("checkedAt");
+  if (typeof entry?.privacyUrl === "string" && entry.privacyUrl.trim() && !isHttps(entry.privacyUrl)) missingFields.push("privacyUrl (not an https address)");
+  if (entry?.dpaUrl != null && !isHttps(entry.dpaUrl)) missingFields.push("dpaUrl (not an https address)");
+  if (missingFields.length) {
+    console.error(`[update-privacy-policy] Incomplete entry in ${file}: ${missingFields.join(", ")}`);
+    if (missingFields.some((f) => f.startsWith("detect"))) {
+      console.error(
+        "  An entry that could be detected but is not is a detection rule to write, not a flag to set: give `detect` the signs that revealed the service (deps, env, envPrefixes, hosts). `manuallyDeclared: true` only when it leaves no trace in the code.",
+      );
+    }
+    process.exit(2);
+  }
+  const idx = registry.findIndex((e) => e.key === entry.key);
+  if (idx >= 0) {
+    registry[idx] = entry;
+    reports.push(`replaced  ${entry.key} (supplied whole)`);
+  } else {
+    registry.push(entry);
+    reports.push(`added     ${entry.key} (supplied whole)`);
+  }
+}
+
+if (adds.length === 0 && removes.length === 0 && entryFiles.length === 0) {
+  console.error("Nothing to do. Use --add, --remove, --entry, --list or --catalog.");
+  process.exit(2);
+}
+
+saveRegistry(registry);
+
+console.log(`[update-privacy-policy] ${DATA_FILE}`);
+for (const r of reports) console.log(`  ${r}`);
+console.log(`Total: ${registry.length} subprocessor(s)`);

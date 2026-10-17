@@ -1,0 +1,28 @@
+name: Harness CI
+
+# Chaque modification du harnais (par un humain ou par le cerveau) doit garder
+# toutes les suites vertes : celle de l'usine et les 779 vérifications amont.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Tests de l'usine
+        run: node --test test/*.test.mjs
+      - name: Tests des garde-fous amont
+        run: node harness/upstream/hooks/test-hooks.mjs
+      - name: Construction du plugin
+        run: node scripts/build-plugin.mjs

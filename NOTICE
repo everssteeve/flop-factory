@@ -1,0 +1,14 @@
+Flop Factory
+Copyright 2026 Steeve Evers
+
+Ce projet contient, dans harness/upstream/, une copie non modifiée de
+hypervibe-harness (https://github.com/flavien-ia/hypervibe-harness),
+Copyright 2026 Hyper Wisdom, écrit par Flavien Chervet, distribué sous
+licence Apache 2.0. Version copiée : voir harness/UPSTREAM.md.
+
+« Hypervibe » et « Certifié Hypervibe » sont des marques de Hyper Wisdom.
+Flop Factory n'est ni affilié à Hyper Wisdom, ni approuvé ou certifié par
+elle. Le plugin dérivé construit par scripts/build-plugin.mjs porte le nom
+« flop-factory-harness ».
+
+L'ensemble est distribué sous licence Apache 2.0 (voir LICENSE).

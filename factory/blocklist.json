@@ -1,0 +1,15 @@
+{
+  "$comment": "Sujets que l'usine ne traite jamais : l'éditeur légal est une personne physique. Liste lue par les ateliers Découverte et Qualité (arbitre). À compléter par un humain uniquement.",
+  "topics": [
+    "santé, diagnostic, médicaments, dispositifs médicaux",
+    "conseil financier, investissement, crédit, crypto-actifs",
+    "conseil juridique, fiscal ou administratif personnalisé",
+    "public mineur ou collecte de données de mineurs",
+    "politique, élections, religion",
+    "jeux d'argent et paris",
+    "contenus pour adultes",
+    "armes, drogues, activités illégales",
+    "surveillance ou collecte de données sur des tiers",
+    "usurpation ou imitation d'une marque ou d'une organisation existante"
+  ]
+}

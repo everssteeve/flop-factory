@@ -1,0 +1,170 @@
+#!/usr/bin/env node
+// install-bw.mjs - Ensure the Bitwarden CLI (`bw`) is installed and on PATH. Cross-OS, idempotent.
+//
+// Mirrors the style of the plugin's other ensure-* scripts (setup-gitleaks-global, ensure-pnpm-globalbin):
+// prints a single status token on stdout - OK | INSTALLED | ERROR: <reason>.
+//
+//   OK        -> bw already present and runnable, nothing done
+//   INSTALLED -> bw was just installed (mention it to the user)
+//   ERROR     -> install failed (non-blocking for the caller; report + let user install manually)
+//
+// Install strategy (avoids `npm/pnpm i -g @bitwarden/cli` which breaks on Windows with
+// "Cannot find module 'buffer/'", verified 2026-05-28):
+//   Windows : standalone zip -> bw.exe in ~/.hypervibe/bin -> User PATH (no `setx PATH`)
+//   macOS   : `brew install bitwarden-cli` if brew present (Homebrew verifies the bottle), else standalone zip
+//   Linux   : standalone zip -> ~/.hypervibe/bin -> ~/.bashrc/.profile PATH line
+//
+// Where the zip comes from, and what is checked. `vault.bitwarden.com/download/?app=cli&platform=...`
+// is not a file server but a redirector: a 302 to the GitHub release of bitwarden/clients. That
+// release publishes no checksum file, so there is nothing to compare a download against. What
+// CAN be checked is the redirect itself: we resolve it ourselves, refuse to continue unless it
+// lands under github.com/bitwarden/clients/releases/download/, read the version it names, and
+// only then hand the resolved URL to the downloader. A redirector pointed elsewhere (or a
+// tampered DNS answer for it) no longer produces a "successful" install (outside review, 2.9.5).
+
+import { spawnSync, execSync } from "node:child_process";
+import { existsSync, mkdirSync, writeFileSync, rmSync, statSync } from "node:fs";
+import { homedir, platform, tmpdir } from "node:os";
+import { join } from "node:path";
+import { bwAnswers } from "./bw-home.mjs";
+
+const BIN_DIR = join(homedir(), ".hypervibe", "bin");
+const REDIRECTOR = "https://vault.bitwarden.com/download/?app=cli&platform=";
+const RELEASE_PREFIX = "https://github.com/bitwarden/clients/releases/download/";
+
+/** Whether a `bw` on the PATH runs: asked through the plugin's folder (bw-home.mjs), never bw's
+ *  own, which the question alone would write. */
+function bwWorks() {
+  return bwAnswers("bw");
+}
+
+function ok(msg) { process.stdout.write(msg); process.exit(0); }
+function fail(reason) { process.stdout.write(`ERROR: ${reason}`); process.exit(0); }
+
+if (bwWorks()) ok("OK");
+
+const os = platform();
+let version = null;
+try {
+  if (os === "win32") {
+    version = await installWindows();
+  } else if (os === "darwin") {
+    version = await installMac();
+  } else {
+    version = await installLinux();
+  }
+} catch (e) {
+  fail(e.message || String(e));
+}
+
+const suffix = version ? ` (bw ${version})` : "";
+if (bwWorks()) ok(`INSTALLED${suffix}`);
+// Installed to BIN_DIR + added to User PATH, but PATH may not be live in this process.
+// Report INSTALLED with a hint so the caller knows to use the absolute path / new shell.
+process.stdout.write(`INSTALLED${suffix} (PATH refresh needed: ${BIN_DIR})`);
+process.exit(0);
+
+// ---------------------------------------------------------------------
+
+/** Resolves the Bitwarden redirector WITHOUT following it, checks the target is
+ *  the official GitHub release, and returns { url, version }. Throws otherwise. */
+async function resolveRelease(platformSlug) {
+  const res = await fetch(REDIRECTOR + platformSlug, { redirect: "manual" });
+  const location = res.headers.get("location");
+  if (!(res.status >= 300 && res.status < 400) || !location) {
+    throw new Error(`Bitwarden download redirector answered HTTP ${res.status} instead of a redirect`);
+  }
+  if (!location.startsWith(RELEASE_PREFIX)) {
+    throw new Error(
+      `Bitwarden download redirected outside the official release (${location.slice(0, 80)}...): refusing to install`,
+    );
+  }
+  const m = /\/cli-v(\d{4}\.\d+\.\d+)\//.exec(location);
+  return { url: location, version: m ? m[1] : null };
+}
+
+async function installWindows() {
+  if (!existsSync(BIN_DIR)) mkdirSync(BIN_DIR, { recursive: true });
+  const { url, version } = await resolveRelease("windows");
+  // IMPORTANT: write the PowerShell to a real .ps1 and run it via `-File`, NOT via
+  // `-Command "<multi-line string>"`. Passing a multi-line PS script through the
+  // cmd->powershell quote/newline escaping silently degrades it: the script can "succeed"
+  // (exit 0) in a fraction of a second while having downloaded NOTHING (empty BIN_DIR).
+  // That false-success was the cause of "the binary was not downloaded correctly"
+  // (verified 2026-05-31). `-File` avoids all quoting issues. `$ProgressPreference =
+  // 'SilentlyContinue'` keeps Invoke-WebRequest fast. The binary is the SAME for US/EU
+  // (data residency is set at login via --server), so the download host is irrelevant.
+  // The URL is the resolved GitHub release asset, not the redirector: PowerShell only
+  // follows GitHub's own hop to its download CDN.
+  // A name of its own for this run, like the script beside it: two installs never share a file.
+  const zip = join(tmpdir(), `_bw_cli_${process.pid}.zip`);
+  const ps1 = join(tmpdir(), `_bw_install_${process.pid}.ps1`);
+  const script = `$ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
+$bin = '${BIN_DIR}'
+$zip = '${zip}'
+Invoke-WebRequest -Uri '${url}' -OutFile $zip
+Expand-Archive -Path $zip -DestinationPath $bin -Force
+Remove-Item $zip -Force
+$u = [Environment]::GetEnvironmentVariable('Path','User')
+if ($u -notlike "*$bin*") { [Environment]::SetEnvironmentVariable('Path', "$u;$bin", 'User') }
+`;
+  writeFileSync(ps1, script, "utf8");
+  try {
+    execSync(`powershell -NoProfile -ExecutionPolicy Bypass -File "${ps1}"`, {
+      stdio: ["ignore", "pipe", "pipe"], windowsHide: true,
+    });
+  } finally {
+    try { rmSync(ps1, { force: true }); } catch { /* best effort */ }
+  }
+  // Verify the binary REALLY landed - never report a false success on an empty dir.
+  const exe = join(BIN_DIR, "bw.exe");
+  if (!existsSync(exe) || statSync(exe).size < 1_000_000) {
+    throw new Error("bw.exe download incomplete (check your connection and try again)");
+  }
+  // Make bw resolvable in THIS process too (caller still exports for the session shell).
+  process.env.PATH = `${process.env.PATH};${BIN_DIR}`;
+  return version;
+}
+
+async function installMac() {
+  // Prefer Homebrew, else standalone zip. `brew` may NOT be on PATH yet (a fresh Homebrew
+  // install doesn't update the current shell's PATH), so resolve it by PATH then by the
+  // standard absolute locations: /opt/homebrew (Apple Silicon) or /usr/local (Intel).
+  // Homebrew checks the formula's sha256 itself: this path needs no extra verification.
+  let brewBin = null;
+  for (const cand of ["brew", "/opt/homebrew/bin/brew", "/usr/local/bin/brew"]) {
+    if (spawnSync(cand, ["--version"], { encoding: "utf8" }).status === 0) { brewBin = cand; break; }
+  }
+  if (brewBin) {
+    execSync(`"${brewBin}" install bitwarden-cli`, { stdio: ["ignore", "pipe", "pipe"] });
+    return null;
+  }
+  return installUnixStandalone("macos");
+}
+
+async function installLinux() {
+  return installUnixStandalone("linux");
+}
+
+async function installUnixStandalone(platformSlug) {
+  // TODO (Unix port - untested): download + unzip + PATH line. Written to mirror Windows;
+  // validate on a real macOS/Linux box before relying on it.
+  if (!existsSync(BIN_DIR)) mkdirSync(BIN_DIR, { recursive: true });
+  const { url, version } = await resolveRelease(platformSlug);
+  const zip = join(homedir(), ".hypervibe", `bw-cli-${process.pid}.zip`);
+  // The resolved GitHub asset URL, not the redirector: curl only follows GitHub's own
+  // hop to its download CDN.
+  execSync(`curl -fsSL "${url}" -o "${zip}"`, { stdio: ["ignore", "pipe", "pipe"] });
+  execSync(`unzip -o "${zip}" -d "${BIN_DIR}" && chmod +x "${join(BIN_DIR, "bw")}" && rm -f "${zip}"`, {
+    stdio: ["ignore", "pipe", "pipe"], shell: "/bin/bash",
+  });
+  // Add to PATH via shell rc (idempotent) - the caller also exports for the session.
+  const rc = join(homedir(), platformSlug === "macos" ? ".zshrc" : ".bashrc");
+  const line = `export PATH="$PATH:${BIN_DIR}"`;
+  execSync(`grep -qF '${BIN_DIR}' "${rc}" 2>/dev/null || echo '${line}' >> "${rc}"`, {
+    stdio: ["ignore", "pipe", "pipe"], shell: "/bin/bash",
+  });
+  process.env.PATH = `${process.env.PATH}:${BIN_DIR}`;
+  return version;
+}

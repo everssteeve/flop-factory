@@ -1,0 +1,792 @@
+#!/usr/bin/env node
+// execute-deletions.mjs - Phase 3 of /delete-project, all deletions in
+// parallel where safe.
+//
+// Usage:
+//   node execute-deletions.mjs --inventory <path.json> --scope <json-array>
+//                              --confirm <project-name>
+//
+// Where:
+//   --inventory  : path to the JSON file produced by discover-resources.mjs
+//   --confirm    : the project name, typed again, and matched against the
+//                  inventory. Nothing here can be undone: the database, its
+//                  backups, the stored files and the DNS records all go at
+//                  once. Naming the target is the cheapest possible proof that
+//                  this run is the one the user asked for, and it is what
+//                  stops a stale command line from deleting the wrong project.
+//                  /delete-project passes it after its own double confirmation.
+//   --scope      : JSON array of categories to delete. Subset of:
+//                  ["vercel","neon","r2","workers","dns","db-backup",
+//                   "cron-jobs","render","stripe-webhooks","upstash",
+//                   "email-routing","memory","github"]
+//                  Pass ["all"] as a shortcut to delete everything.
+//                  "github" deletes the repository /bootstrap created for
+//                  this project and declared in its manifest, and no other
+//                  (_github-repo.mjs): any other repository stays a manual
+//                  step, whatever the scope says.
+//   --vercel-project : optional, comma-separated Vercel project ids. Required
+//                  when the inventory flags `vercel.ambiguous` (several
+//                  projects answer to the name, in different teams): the ids
+//                  the user picked among those candidates. Projects designated
+//                  by the folder's link or by the manifest are always kept.
+//
+// Outputs a JSON report to stdout:
+//   {
+//     deleted: { vercel: {...}, neon: {...}, ... },
+//     failed:  { ... },
+//     skipped: { ... }
+//   }
+//
+// Design:
+// - Parallel where safe (3.1-3.5 + 3.7-3.10 all independent).
+// - Sequential where needed: db-backup AFTER neon (since the db-backup
+//   removal references the Neon projectId), cron-jobs AFTER db-backup (both
+//   commit + redeploy the same ~/.hypervibe-jobs registry, never in
+//   parallel), memory, then the GitHub repository LAST: a run that stops
+//   half way leaves the code where it was.
+// - Each operation is fault-tolerant: one failure doesn't abort the whole
+//   batch. The user can re-run with a narrower scope to retry.
+// - NEVER touches the local project dir (sandbox blocks it). The LLM
+//   reports the path in the final summary instead.
+
+import { existsSync, readFileSync, writeFileSync, unlinkSync, statSync, readdirSync, rmSync, rmdirSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { homedir } from "node:os";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import { getSecret, sessionStatus } from "../vault/vault.mjs";
+import { tokenMatches, moreSpecificOwner } from "../_match.mjs";
+import { spawnSpec } from "../_spawn.mjs";
+import { vercelContext, deleteProject } from "../_vercel-projects.mjs";
+import { trimIndex } from "./_memory-index.mjs";
+import { deleteRight, repositoryToDelete } from "./_github-repo.mjs";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const PLUGIN_ROOT = join(__dirname, "..", "..");
+
+// ─── args ──────────────────────────────────────────────────────────────────
+const args = process.argv.slice(2);
+function arg(name) {
+  const i = args.indexOf(name);
+  return i >= 0 ? args[i + 1] : null;
+}
+const INVENTORY_PATH = arg("--inventory");
+const SCOPE_JSON = arg("--scope");
+const CONFIRM = arg("--confirm");
+const VERCEL_CHOICE = (arg("--vercel-project") || "").split(",").map((s) => s.trim()).filter(Boolean);
+if (!INVENTORY_PATH || !SCOPE_JSON) {
+  console.error("Usage: node execute-deletions.mjs --inventory <path.json> --scope <json-array> --confirm <project-name>");
+  process.exit(1);
+}
+if (!existsSync(INVENTORY_PATH)) {
+  console.error(`Inventory file not found: ${INVENTORY_PATH}`);
+  process.exit(1);
+}
+// An inventory that does not parse, or does not say which project it describes, is refused
+// before anything else: on 25/09/2026 two deletions running at once wrote the same file, and
+// one inventory ended with a fragment of the other project's. Nothing here is guessed.
+let inventory;
+try {
+  inventory = JSON.parse(readFileSync(INVENTORY_PATH, "utf8"));
+} catch (e) {
+  console.error(
+    `Refuse : l'inventaire ${INVENTORY_PATH} est illisible (${e.message}). Rien n'est supprime.\n` +
+      "Relancer la phase d'inventaire, puis cette commande avec le chemin qu'elle affiche.",
+  );
+  process.exit(7);
+}
+if (!inventory || typeof inventory !== "object" || typeof inventory.project !== "string" || !inventory.project.trim()) {
+  console.error(`Refuse : l'inventaire ${INVENTORY_PATH} ne dit pas quel projet il decrit. Rien n'est supprime.`);
+  process.exit(7);
+}
+let scope;
+try {
+  scope = JSON.parse(SCOPE_JSON);
+} catch {
+  console.error(`Invalid --scope JSON: ${SCOPE_JSON}`);
+  process.exit(1);
+}
+const ALL_CATEGORIES = ["vercel", "neon", "r2", "workers", "dns", "db-backup", "cron-jobs", "render", "stripe-webhooks", "upstash", "email-routing", "memory", "github"];
+if (scope.length === 1 && scope[0] === "all") scope = ALL_CATEGORIES;
+const scopeSet = new Set(scope);
+
+const PROJECT = inventory.project;
+// The confirmation is checked against the inventory, once it is loaded and the
+// real target is known.
+if (!CONFIRM || CONFIRM.trim().toLowerCase() !== String(PROJECT).trim().toLowerCase()) {
+  console.error(
+    `Refuse : ces suppressions sont irreversibles et visent le projet "${PROJECT}".\n` +
+      "Relancer avec --confirm \"" + PROJECT + "\" pour confirmer la cible.",
+  );
+  process.exit(7);
+}
+const CF_ACCOUNT_ID = inventory.cloudflareAccountId;
+// Sibling project names computed at discovery time (disambiguation of shared
+// prefixes, e.g. "street" vs "street-cool").
+const OWNER_CANDIDATES = Array.isArray(inventory.ownerCandidates) ? inventory.ownerCandidates : [];
+
+// ─── env ───────────────────────────────────────────────────────────────────
+function readUserEnvSync(name) {
+  const helper = join(PLUGIN_ROOT, "scripts", "_read-user-env.mjs");
+  if (!existsSync(helper)) return process.env[name] || "";
+  const r = spawnSync("node", [helper, name], { encoding: "utf8" });
+  if (r.status !== 0) return process.env[name] || "";
+  return (r.stdout || "").trim();
+}
+// What in the inventory says a category has something to delete. A key is read
+// only for a category that is in scope AND has something: a run limited to
+// Vercel, or a project that only has a site, never touches the vault (which
+// also lets the recette drive it).
+const HAS = {
+  neon: () => inventory.neon?.found === true,
+  r2: () => inventory.r2?.found === true,
+  workers: () => inventory.workers?.found === true,
+  dns: () => inventory.dns?.found === true,
+  "db-backup": () => inventory.dbBackup?.isTarget === true,
+  "cron-jobs": () => inventory.cronJobs?.found === true,
+  "email-routing": () => inventory.emailRouting?.found === true,
+  render: () => inventory.render?.found === true,
+  "stripe-webhooks": () => inventory.stripe?.webhooksFound === true,
+};
+const toDelete = (...categories) => categories.filter((c) => scopeSet.has(c) && HAS[c]?.() === true);
+const needs = (...categories) => toDelete(...categories).length > 0;
+// The categories each vault key serves. "db-backup" is here although this file
+// never uses the token for it: its removal redeploys the shared worker, and the
+// script it delegates to reads the same key in the same vault.
+const CLOUDFLARE_CATEGORIES = ["r2", "workers", "dns", "db-backup", "cron-jobs", "email-routing"];
+const CLOUDFLARE_API_TOKEN = !needs(...CLOUDFLARE_CATEGORIES) ? "" : (() => { try { return getSecret("CLOUDFLARE", "api_token"); } catch { return readUserEnvSync("CLOUDFLARE_API_TOKEN") || readUserEnvSync("CF_API_TOKEN") || process.env.CLOUDFLARE_API_TOKEN || ""; } })();
+const NEON_API_KEY = !needs("neon") ? "" : (() => { try { return getSecret("NEON", "api_key"); } catch { return readUserEnvSync("NEON_API_KEY") || process.env.NEON_API_KEY || ""; } })();
+// Render: the vault first, where `_setup-render` stores the key.
+const RENDER_API_KEY = !needs("render") ? "" : (() => { try { return getSecret("RENDER", "api_key"); } catch { return readUserEnvSync("RENDER_API_KEY") || process.env.RENDER_API_KEY || ""; } })();
+const STRIPE_SECRET_KEY = !needs("stripe-webhooks") ? "" : readUserEnvSync("STRIPE_SECRET_KEY") || process.env.STRIPE_SECRET_KEY || "";
+
+// ─── the vault, before anything is deleted ─────────────────────────────────
+// With the vault locked or expired and no key in the environment, this run
+// used to delete what needs no key (the site at its host), then fail on the
+// rest behind "NEON_API_KEY missing": half a deletion, and a message that sends
+// the person looking for a key that exists (seen on 25/09/2026 and 29/09/2026:
+// the vault had expired between the scope's validation and the execution).
+// Refused as a whole instead, before the first deletion, with the vault's own
+// exit codes (2 locked, 3 expired): unlock it, then run the same command again.
+// A key that is truly absent from an OPEN vault is another matter: that
+// category fails by itself, with its message, and the others go on.
+const KEYED = [
+  { item: "CLOUDFLARE", value: CLOUDFLARE_API_TOKEN, waiting: toDelete(...CLOUDFLARE_CATEGORIES) },
+  { item: "NEON", value: NEON_API_KEY, waiting: toDelete("neon") },
+  { item: "RENDER", value: RENDER_API_KEY, waiting: toDelete("render") },
+];
+const unread = KEYED.filter((k) => k.waiting.length > 0 && !k.value);
+if (unread.length > 0) {
+  const vault = (() => { try { return sessionStatus(); } catch { return "unknown"; } })();
+  if (vault === "locked" || vault === "expired") {
+    console.error(
+      `Refuse : le coffre est ${vault === "expired" ? "expire" : "verrouille"}, et ${unread.flatMap((k) => k.waiting).join(", ")} ` +
+        `ne peuvent pas etre supprimes sans les cles qu'il garde (${unread.map((k) => k.item).join(", ")}). RIEN n'est supprime, le site compris.\n` +
+        "Ouvrir le coffre (_ensure-vault), puis relancer cette commande telle quelle : l'inventaire reste valable.",
+    );
+    process.exit(vault === "expired" ? 3 : 2);
+  }
+}
+
+// ─── helpers ───────────────────────────────────────────────────────────────
+async function httpDelete(url, headers = {}) {
+  try {
+    const res = await fetch(url, { method: "DELETE", headers });
+    const text = await res.text().catch(() => "");
+    return { ok: res.ok, status: res.status, body: text };
+  } catch (e) {
+    return { ok: false, status: -1, body: String(e) };
+  }
+}
+
+// Never `shell: true` with an argument array: the shell cuts a path at its
+// first space (C:\Users\First Last\...), which is how the db-backup step
+// failed for a user of 3.1.5. _spawn.mjs decides: the plugin's own scripts go
+// through the running Node binary with no shell, a CLI gets one quoted line
+// on Windows (its .cmd shims need a shell) and a plain array elsewhere.
+function runCmdSync(cmd, args, opts = {}) {
+  const spec = spawnSpec(cmd, args);
+  const r = spawnSync(spec.file, spec.args, { encoding: "utf8", ...opts, shell: spec.shell });
+  return { code: r.status, stdout: r.stdout || "", stderr: r.stderr || "" };
+}
+
+// ─── deletion functions ────────────────────────────────────────────────────
+
+// By id and team, never by bare name: `vercel project rm <name>` acts on the
+// team the CLI is set to, which missed a project living in the account's other
+// team (2026-09-17). Projects designated by the folder's link or by the
+// manifest are always deleted; candidates found by their name alone only when
+// there is no doubt, or when the user picked them (--vercel-project).
+const isTrusted = (p) => p.via !== "name" || p.declared === true;
+
+async function deleteVercel() {
+  const v = inventory.vercel;
+  if (!v?.found) return { status: "skipped", reason: "not found in inventory" };
+  if (!Array.isArray(v.projects) || v.projects.length === 0) {
+    return {
+      status: "failed",
+      error: "this inventory does not say which team each Vercel project belongs to (older version): run the inventory again",
+    };
+  }
+  const trusted = v.projects.filter(isTrusted);
+  const guesses = v.projects.filter((p) => !isTrusted(p));
+  let chosen = guesses;
+  if (VERCEL_CHOICE.length) {
+    const unknown = VERCEL_CHOICE.filter((id) => !v.projects.some((p) => p.id === id));
+    if (unknown.length) {
+      return { status: "failed", error: `--vercel-project names projects the inventory does not list: ${unknown.join(", ")}` };
+    }
+    chosen = guesses.filter((p) => VERCEL_CHOICE.includes(p.id));
+  } else if (v.ambiguous) {
+    return {
+      status: "failed",
+      needsChoice: true,
+      error: "several Vercel projects answer to this name: nothing deleted until the user picks (--vercel-project <id>)",
+      choices: guesses.map(({ id, name, teamId, teamSlug, teamName }) => ({ id, name, teamId, teamSlug, teamName })),
+    };
+  }
+  const targets = [...trusted, ...chosen];
+  if (targets.length === 0) return { status: "skipped", reason: "no Vercel project picked" };
+
+  const ctx = vercelContext();
+  const results = [];
+  for (const t of targets) {
+    const team = t.teamSlug || t.teamName || t.teamId || "personal scope";
+    results.push({ id: t.id, name: t.name, team, ...(await deleteProject(ctx, t)) });
+  }
+  const failures = results.filter((r) => r.status === "failed");
+  if (failures.length === results.length) {
+    return { status: "failed", results, error: failures.map((r) => `${r.name} (${r.team}): ${r.error}`).join(" | ") };
+  }
+  return { status: failures.length ? "partial" : "deleted", results };
+}
+
+async function deleteNeon() {
+  if (!inventory.neon?.found) return { status: "skipped", reason: "not found in inventory" };
+  if (!NEON_API_KEY) return { status: "failed", error: "NEON_API_KEY missing" };
+  const results = [];
+  for (const p of inventory.neon.projects) {
+    const r = await fetch(`https://console.neon.tech/api/v2/projects/${p.id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${NEON_API_KEY}` },
+    });
+    if (r.ok) {
+      results.push({ id: p.id, name: p.name, status: "deleted" });
+    } else {
+      results.push({ id: p.id, name: p.name, status: "failed", error: await r.text().catch(() => `HTTP ${r.status}`) });
+    }
+  }
+  const anyFail = results.some((r) => r.status === "failed");
+  return { status: anyFail ? "partial" : "deleted", results };
+}
+
+// REST API, not `wrangler r2 bucket delete`: wrangler reads its credentials from
+// the process ENV, and since the vault migration the token only lives in the
+// CLOUDFLARE_API_TOKEN constant above - every wrangler call failed with
+// "necessary to set a CLOUDFLARE_API_TOKEN…" (same root cause as the scanR2 bug).
+// The EU jurisdiction is selected by the `cf-r2-jurisdiction` header, the REST
+// equivalent of wrangler's `-J eu`.
+//
+// Cloudflare refuses to delete a bucket that still holds objects, so it is
+// emptied first. No S3 key pair is needed for that: the account API token can
+// list AND delete objects through the v4 API (`/objects`), something the
+// wrangler CLI cannot do - it has get/put/delete but no `list`.
+// Careful with this endpoint family: a failed object delete answers HTTP 200
+// with `success: false` in the body, so the HTTP status alone is not a verdict.
+function r2Headers(jurisdiction) {
+  const headers = { Authorization: `Bearer ${CLOUDFLARE_API_TOKEN}` };
+  if (jurisdiction === "eu") headers["cf-r2-jurisdiction"] = "eu";
+  return headers;
+}
+
+function cfErrorMessage(body, fallback) {
+  try {
+    const msgs = (JSON.parse(body).errors || []).map((e) => e.message).filter(Boolean);
+    if (msgs.length) return msgs.join("; ");
+  } catch {}
+  return (body || "").slice(0, 300) || fallback;
+}
+
+// Encode each path segment but keep the "/" separators of the key.
+const encodeKey = (key) => key.split("/").map(encodeURIComponent).join("/");
+
+async function emptyR2Bucket(bucketName, jurisdiction) {
+  const headers = r2Headers(jurisdiction);
+  const base = `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/r2/buckets/${encodeURIComponent(bucketName)}`;
+  let deleted = 0;
+  const errors = [];
+  // Re-list from scratch after each batch: a cursor taken before the deletions
+  // would no longer be valid. Bounded to stay safe on a runaway bucket.
+  for (let round = 0; round < 200; round++) {
+    const res = await fetch(`${base}/objects?per_page=1000`, { headers }).catch((e) => ({ ok: false, statusText: String(e) }));
+    if (!res.ok) {
+      errors.push(`list: ${res.status ? `HTTP ${res.status}` : res.statusText}`);
+      break;
+    }
+    const body = await res.json().catch(() => null);
+    if (!body || body.success === false) {
+      errors.push(`list: ${cfErrorMessage(JSON.stringify(body || {}), "unreadable response")}`);
+      break;
+    }
+    const keys = (body.result || []).map((o) => o.key);
+    if (keys.length === 0) return { emptied: true, deleted, errors };
+
+    // Modest concurrency: fast enough on thousands of objects, gentle on the API.
+    const CONCURRENCY = 8;
+    let cursor = 0;
+    let deletedThisRound = 0;
+    await Promise.all(
+      Array.from({ length: Math.min(CONCURRENCY, keys.length) }, async () => {
+        while (cursor < keys.length) {
+          const key = keys[cursor++];
+          const d = await httpDelete(`${base}/objects/${encodeKey(key)}`, headers);
+          // HTTP 200 + success:false = the delete did NOT happen.
+          let ok = d.ok;
+          if (ok && d.body) {
+            try { ok = JSON.parse(d.body).success !== false; } catch {}
+          }
+          if (ok) {
+            deleted++;
+            deletedThisRound++;
+          } else if (errors.length < 10) {
+            errors.push(`${key}: ${cfErrorMessage(d.body, `HTTP ${d.status}`)}`);
+          }
+        }
+      }),
+    );
+    // A full round that removed nothing will never converge: stop there.
+    if (deletedThisRound === 0) {
+      errors.push(`${keys.length} object(s) left: none could be deleted`);
+      break;
+    }
+  }
+  return { emptied: errors.length === 0, deleted, errors };
+}
+
+async function deleteR2() {
+  if (!inventory.r2?.found) return { status: "skipped", reason: "not found in inventory" };
+  if (!CLOUDFLARE_API_TOKEN) return { status: "failed", error: "CLOUDFLARE_API_TOKEN missing (vault locked?)" };
+  if (!CF_ACCOUNT_ID) return { status: "failed", error: "Cloudflare account id missing from the inventory" };
+  const results = [];
+  for (const bucket of inventory.r2.buckets) {
+    const empty = await emptyR2Bucket(bucket.name, bucket.jurisdiction);
+    const r = await httpDelete(
+      `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/r2/buckets/${encodeURIComponent(bucket.name)}`,
+      r2Headers(bucket.jurisdiction),
+    );
+    if (r.ok) {
+      results.push({ ...bucket, status: "deleted", objectsDeleted: empty.deleted });
+    } else {
+      results.push({
+        ...bucket,
+        status: "failed",
+        objectsDeleted: empty.deleted,
+        error: `HTTP ${r.status} - ${cfErrorMessage(r.body, "no detail")}` +
+          (empty.errors.length ? ` | emptying: ${empty.errors.slice(0, 3).join("; ")}` : ""),
+      });
+    }
+  }
+  const anyFail = results.some((r) => r.status === "failed");
+  return { status: anyFail ? "partial" : "deleted", results };
+}
+
+async function deleteWorkers() {
+  if (!inventory.workers?.found) return { status: "skipped", reason: "not found in inventory" };
+  if (!CLOUDFLARE_API_TOKEN) return { status: "failed", error: "CLOUDFLARE_API_TOKEN missing" };
+  const results = [];
+  for (const w of inventory.workers.workers) {
+    const r = await httpDelete(
+      `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/workers/scripts/${w.id}`,
+      { Authorization: `Bearer ${CLOUDFLARE_API_TOKEN}` },
+    );
+    results.push({ id: w.id, status: r.ok ? "deleted" : "failed", ...(r.ok ? {} : { error: r.body.slice(0, 300) }) });
+  }
+  const anyFail = results.some((r) => r.status === "failed");
+  return { status: anyFail ? "partial" : "deleted", results };
+}
+
+async function deleteDns() {
+  if (!inventory.dns?.found) return { status: "skipped", reason: "not found in inventory" };
+  if (!CLOUDFLARE_API_TOKEN) return { status: "failed", error: "CLOUDFLARE_API_TOKEN missing" };
+  const results = [];
+  for (const rec of inventory.dns.records) {
+    const r = await httpDelete(
+      `https://api.cloudflare.com/client/v4/zones/${rec.zoneId}/dns_records/${rec.recordId}`,
+      { Authorization: `Bearer ${CLOUDFLARE_API_TOKEN}` },
+    );
+    results.push({ recordId: rec.recordId, name: rec.name, status: r.ok ? "deleted" : "failed", ...(r.ok ? {} : { error: r.body.slice(0, 300) }) });
+  }
+  const anyFail = results.some((r) => r.status === "failed");
+  return { status: anyFail ? "partial" : "deleted", results };
+}
+
+async function deleteDbBackup() {
+  if (!inventory.dbBackup?.isTarget) return { status: "skipped", reason: "not a backup target" };
+  // Delegate to the dedicated script
+  const r = runCmdSync("node", [
+    join(__dirname, "db-backup-remove-target.mjs"),
+    "--project",
+    PROJECT,
+  ]);
+  if (r.code !== 0) {
+    return { status: "failed", error: (r.stderr || r.stdout).slice(0, 500) };
+  }
+  try {
+    return { status: "deleted", ...JSON.parse(r.stdout) };
+  } catch {
+    return { status: "deleted", raw: r.stdout.slice(0, 500) };
+  }
+}
+
+// Re-read the shared-worker registry from disk (post-removal guard for the
+// per-project secret). Returns the jobs array, or null when unreadable.
+function readRegistryJobs() {
+  const jobsPath = join(homedir(), ".hypervibe-jobs", "jobs.js");
+  if (!existsSync(jobsPath)) return null;
+  try {
+    const raw = readFileSync(jobsPath, "utf8");
+    const m = raw.match(/export default\s*([\s\S]*?);?\s*$/);
+    if (!m) return null;
+    const registry = JSON.parse(m[1]);
+    return Array.isArray(registry.jobs) ? registry.jobs : null;
+  } catch {
+    return null;
+  }
+}
+
+function readSharedWorkerName() {
+  try {
+    const toml = readFileSync(join(homedir(), ".hypervibe-jobs", "wrangler.toml"), "utf8");
+    const m = toml.match(/^\s*name\s*=\s*"([^"]+)"/m);
+    if (m) return m[1];
+  } catch {}
+  return "hypervibe-jobs";
+}
+
+async function deleteCronJobs() {
+  if (!inventory.cronJobs?.found) return { status: "skipped", reason: "no cron jobs on the shared worker" };
+  const registerPath = join(PLUGIN_ROOT, "scripts", "shared-worker", "register.mjs");
+  // Make the Cloudflare token visible to register.mjs even when this process
+  // resolved it from the vault (readUserEnv checks process.env first).
+  const spawnEnv = { ...process.env };
+  if (CLOUDFLARE_API_TOKEN) {
+    spawnEnv.CLOUDFLARE_API_TOKEN = CLOUDFLARE_API_TOKEN;
+    spawnEnv.CF_API_TOKEN = CLOUDFLARE_API_TOKEN;
+  }
+
+  const results = [];
+  for (const job of inventory.cronJobs.jobs) {
+    // Remove by REGISTRY name (composite <project>-<task> since 2026-07-05);
+    // the jobs were matched by their `project` field at discovery time.
+    const r = spawnSync("node", [registerPath, "--remove", "--name", job.name], {
+      encoding: "utf8",
+      env: spawnEnv,
+    });
+    let rep = null;
+    try {
+      const line = (r.stdout || "").trim().split("\n").filter(Boolean).pop();
+      rep = line ? JSON.parse(line) : null;
+    } catch {
+      rep = null;
+    }
+    if (r.status === 0 && rep && rep.ok) {
+      results.push({ name: job.name, url: job.url, status: "deleted", workerDeployed: rep.deployed === true });
+    } else if (rep && /No job named/i.test(rep.error || "")) {
+      // Registry changed between discovery and execution: already gone.
+      results.push({ name: job.name, url: job.url, status: "deleted", note: "already absent from the registry" });
+    } else {
+      results.push({
+        name: job.name,
+        url: job.url,
+        status: "failed",
+        error: ((rep && rep.error) || r.stderr || r.stdout || "").slice(0, 300),
+      });
+    }
+  }
+
+  // Drop the per-project worker secret (CRON_SECRET_<PROJECT>) once NO
+  // registry job of the project remains. Re-read from disk: a failed removal
+  // above (or a concurrent registration) must keep the secret alive.
+  const secretName = inventory.cronJobs.secretName;
+  let secret = null;
+  if (secretName) {
+    const remaining = readRegistryJobs();
+    const stillUsed = remaining === null
+      ? true // cannot verify the registry: do not touch the secret
+      : remaining.some(
+          (j) =>
+            j.secretName === secretName ||
+            (j.kind === "ping" && (j.project || "").toLowerCase() === PROJECT.toLowerCase()),
+        );
+    if (stillUsed) {
+      secret = {
+        name: secretName,
+        status: "kept",
+        reason: remaining === null ? "registry unreadable, not verified" : "still referenced by a registry job",
+      };
+    } else if (!CLOUDFLARE_API_TOKEN || !CF_ACCOUNT_ID) {
+      secret = { name: secretName, status: "kept", reason: "Cloudflare token or account id missing" };
+    } else {
+      const workerName = readSharedWorkerName();
+      const r = await httpDelete(
+        `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/workers/scripts/${workerName}/secrets/${secretName}`,
+        { Authorization: `Bearer ${CLOUDFLARE_API_TOKEN}` },
+      );
+      if (r.ok) secret = { name: secretName, status: "deleted", worker: workerName };
+      else if (r.status === 404) secret = { name: secretName, status: "absent", worker: workerName };
+      else secret = { name: secretName, status: "failed", error: r.body.slice(0, 300) };
+    }
+  }
+
+  const anyFail = results.some((x) => x.status === "failed") || secret?.status === "failed";
+  return { status: anyFail ? "partial" : "deleted", results, secret };
+}
+
+async function deleteRender() {
+  if (!inventory.render?.found) return { status: "skipped", reason: "not found in inventory" };
+  if (!RENDER_API_KEY) return { status: "failed", error: "RENDER_API_KEY missing" };
+  const results = [];
+  for (const s of inventory.render.services) {
+    const r = await httpDelete(`https://api.render.com/v1/services/${s.id}`, {
+      Authorization: `Bearer ${RENDER_API_KEY}`,
+    });
+    results.push({ id: s.id, name: s.name, status: r.ok ? "deleted" : "failed", ...(r.ok ? {} : { error: r.body.slice(0, 300) }) });
+  }
+  const anyFail = results.some((r) => r.status === "failed");
+  return { status: anyFail ? "partial" : "deleted", results };
+}
+
+async function deleteStripeWebhooks() {
+  if (!inventory.stripe?.webhooksFound) return { status: "skipped", reason: "no webhooks found" };
+  if (!STRIPE_SECRET_KEY) return { status: "failed", error: "STRIPE_SECRET_KEY missing" };
+  const auth = Buffer.from(`${STRIPE_SECRET_KEY}:`).toString("base64");
+  const results = [];
+  for (const w of inventory.stripe.webhooks) {
+    const r = await httpDelete(`https://api.stripe.com/v1/webhook_endpoints/${w.id}`, {
+      Authorization: `Basic ${auth}`,
+    });
+    results.push({ id: w.id, url: w.url, status: r.ok ? "deleted" : "failed", ...(r.ok ? {} : { error: r.body.slice(0, 300) }) });
+  }
+  const anyFail = results.some((r) => r.status === "failed");
+  return { status: anyFail ? "partial" : "deleted", results };
+}
+
+async function deleteUpstash() {
+  if (!inventory.upstash?.found) return { status: "skipped", reason: "not found in inventory" };
+  const credsPath = join(homedir(), ".upstash.json");
+  if (!existsSync(credsPath)) return { status: "failed", error: "~/.upstash.json missing" };
+  let creds;
+  try {
+    creds = JSON.parse(readFileSync(credsPath, "utf8"));
+  } catch (e) {
+    return { status: "failed", error: `~/.upstash.json invalid: ${e.message}` };
+  }
+  const auth = Buffer.from(`${creds.email}:${creds.apiKey}`).toString("base64");
+  const results = [];
+  for (const db of inventory.upstash.databases) {
+    const r = await httpDelete(`https://api.upstash.com/v2/redis/database/${db.id}`, {
+      Authorization: `Basic ${auth}`,
+    });
+    results.push({ id: db.id, name: db.name, status: r.ok ? "deleted" : "failed", ...(r.ok ? {} : { error: r.body.slice(0, 300) }) });
+  }
+  const anyFail = results.some((r) => r.status === "failed");
+  return { status: anyFail ? "partial" : "deleted", results };
+}
+
+async function deleteEmailRouting() {
+  if (!inventory.emailRouting?.found) return { status: "skipped", reason: "not found in inventory" };
+  if (!CLOUDFLARE_API_TOKEN) return { status: "failed", error: "CLOUDFLARE_API_TOKEN missing" };
+  const results = [];
+  for (const rule of inventory.emailRouting.rules) {
+    const r = await httpDelete(
+      `https://api.cloudflare.com/client/v4/zones/${rule.zoneId}/email/routing/rules/${rule.tag}`,
+      { Authorization: `Bearer ${CLOUDFLARE_API_TOKEN}` },
+    );
+    results.push({ tag: rule.tag, name: rule.name, status: r.ok ? "deleted" : "failed", ...(r.ok ? {} : { error: r.body.slice(0, 300) }) });
+  }
+  const anyFail = results.some((r) => r.status === "failed");
+  return { status: anyFail ? "partial" : "deleted", results };
+}
+
+async function deleteMemory() {
+  if (!inventory.memory?.files || inventory.memory.files.length === 0) {
+    return { status: "skipped", reason: "no memory files found" };
+  }
+  const results = [];
+  const dirs = new Set();
+  // Delete project-specific files only (those whose filename contains the project).
+  // Paths come from the inventory (discover-resources scans every project memory
+  // dir), so no hardcoded workspace slug and fully cross-platform.
+  const deletedByDir = new Map();
+  for (const f of inventory.memory.files) {
+    const fpath = f.path || (f.dir ? join(f.dir, f.filename) : null);
+    if (f.dir) dirs.add(f.dir);
+    if (f.isProjectSpecific && fpath) {
+      try {
+        rmSync(fpath);
+        if (!deletedByDir.has(f.dir)) deletedByDir.set(f.dir, []);
+        deletedByDir.get(f.dir).push(f.filename);
+        results.push({ file: f.filename, status: "deleted" });
+      } catch (e) {
+        results.push({ file: f.filename, status: "failed", error: String(e) });
+      }
+    } else {
+      // File mentions project but isn't named after it - flag for LLM review
+      results.push({ file: f.filename, status: "kept", reason: "not project-specific, references may be incidental - LLM should review" });
+    }
+  }
+  // Trim each MEMORY.md index by the FILES deleted above, and only by them:
+  // a line goes when its link points to a file that is now gone. Matching the
+  // project's name on the line removed lines of other subjects that cited it
+  // in passing, and left files kept for review without their line (outside
+  // review, 3.1.7). The removed lines come back in the report.
+  for (const dir of dirs) {
+    const indexPath = join(dir, "MEMORY.md");
+    if (!existsSync(indexPath)) continue;
+    const gone = deletedByDir.get(dir) ?? [];
+    if (gone.length === 0) continue;
+    try {
+      const original = readFileSync(indexPath, "utf8");
+      const { text, removed } = trimIndex(original, gone);
+      if (removed.length > 0) {
+        writeFileSync(indexPath, text);
+        results.push({ file: "MEMORY.md (index)", status: "trimmed", linesRemoved: removed.length, lines: removed });
+      }
+    } catch (e) {
+      results.push({ file: "MEMORY.md (index)", status: "failed", error: String(e) });
+    }
+  }
+  const failed = results.some((r) => r.status === "failed");
+  // Nothing deleted and nothing failed: every file that mentions the project was
+  // kept for review. "deleted" for a run that deleted nothing read as a memory
+  // that had been cleaned; the report says what really happened.
+  if (!failed && !results.some((r) => r.status === "deleted")) {
+    const kept = results.filter((r) => r.status === "kept").length;
+    return { status: "skipped", reason: `${kept} file(s) mention the project and were kept for review`, results };
+  }
+  return { status: failed ? "partial" : "deleted", results };
+}
+
+// gh, or in a recette the stand-in HYPERVIBE_GH_BIN names (a .mjs run by node, the same hook as
+// scripts/vercel-github-app.mjs).
+function runGh(args) {
+  const standin = process.env.HYPERVIBE_GH_BIN;
+  if (standin && standin.endsWith(".mjs")) {
+    const r = spawnSync(process.execPath, [standin, ...args], { encoding: "utf8", windowsHide: true });
+    return { code: r.status, stdout: r.stdout || "", stderr: r.stderr || "" };
+  }
+  return runCmdSync("gh", args, { timeout: 120000 });
+}
+const GONE = /Could not resolve to a Repository|HTTP 404/i;
+
+// The repository /bootstrap created for this project, and only that one: decided again here from
+// the inventory's facts (the folder's remote, the manifest), never from a flag the inventory
+// carries. gh needs the delete_repo right, which /delete-project asks for before the execution;
+// without it, the repository stays a manual step and the report says why.
+async function deleteGitHub() {
+  const g = inventory.github;
+  if (!g?.exists) return { status: "skipped", reason: "no repository in the inventory" };
+  const target = repositoryToDelete(g, inventory.manifest?.resources ?? []);
+  if (!target.deletable) return { status: "skipped", manual: true, url: g.url ?? null, reason: target.reason };
+  const right = await deleteRight(async (_cmd, args) => runGh(args));
+  if (right.ok !== true) {
+    return {
+      status: "failed",
+      manual: true,
+      repository: target.repository,
+      url: g.url ?? null,
+      ...(right.ok === false ? { needsScope: "delete_repo", ...(right.fromEnvironment ? { fromEnvironment: true } : {}) } : {}),
+      error:
+        right.ok === false
+          ? `gh is signed in${right.account ? ` as ${right.account}` : ""} without the right to delete a repository (delete_repo): nothing was asked of GitHub`
+          : right.reason,
+    };
+  }
+  const r = runGh(["repo", "delete", target.repository, "--yes"]);
+  if (r.code !== 0) {
+    const said = `${r.stderr}${r.stdout}`.trim();
+    if (GONE.test(said)) return { status: "deleted", results: [{ repository: target.repository, status: "absent" }] };
+    return { status: "failed", manual: true, repository: target.repository, url: g.url ?? null, error: said.slice(0, 300) || `gh exited with ${r.code}` };
+  }
+  const after = runGh(["repo", "view", target.repository, "--json", "name"]);
+  const verified = after.code !== 0 && GONE.test(`${after.stderr}${after.stdout}`);
+  return { status: "deleted", results: [{ repository: target.repository, url: g.url ?? null, status: "deleted", verified }] };
+}
+
+// ─── orchestration ─────────────────────────────────────────────────────────
+// Parallel batch 1: independent operations (vercel, r2, workers, dns,
+// render, stripe-webhooks, upstash, email-routing).
+// Sequential after: neon (needed for db-backup), then db-backup, then
+// cron-jobs (same shared-worker registry as db-backup), then memory.
+
+const startedAt = Date.now();
+const report = {
+  project: PROJECT,
+  startedAt: new Date().toISOString(),
+  scope,
+  deleted: {},
+  failed: {},
+  skipped: {},
+};
+
+function record(category, result) {
+  if (result.status === "deleted" || result.status === "partial") {
+    report.deleted[category] = result;
+  } else if (result.status === "failed") {
+    report.failed[category] = result;
+  } else {
+    report.skipped[category] = result;
+  }
+}
+
+// Parallel batch
+const parallelTasks = [];
+if (scopeSet.has("vercel")) parallelTasks.push(deleteVercel().then((r) => ["vercel", r]));
+if (scopeSet.has("r2")) parallelTasks.push(deleteR2().then((r) => ["r2", r]));
+if (scopeSet.has("workers")) parallelTasks.push(deleteWorkers().then((r) => ["workers", r]));
+if (scopeSet.has("dns")) parallelTasks.push(deleteDns().then((r) => ["dns", r]));
+if (scopeSet.has("render")) parallelTasks.push(deleteRender().then((r) => ["render", r]));
+if (scopeSet.has("stripe-webhooks")) parallelTasks.push(deleteStripeWebhooks().then((r) => ["stripe-webhooks", r]));
+if (scopeSet.has("upstash")) parallelTasks.push(deleteUpstash().then((r) => ["upstash", r]));
+if (scopeSet.has("email-routing")) parallelTasks.push(deleteEmailRouting().then((r) => ["email-routing", r]));
+
+const parallelResults = await Promise.all(parallelTasks);
+for (const [cat, res] of parallelResults) record(cat, res);
+
+// Sequential: neon → db-backup → cron-jobs → memory
+if (scopeSet.has("neon")) {
+  const r = await deleteNeon();
+  record("neon", r);
+}
+if (scopeSet.has("db-backup")) {
+  const r = await deleteDbBackup();
+  record("db-backup", r);
+}
+if (scopeSet.has("cron-jobs")) {
+  // After db-backup: both mutate + commit + redeploy the same
+  // ~/.hypervibe-jobs registry, so they must never run concurrently.
+  const r = await deleteCronJobs();
+  record("cron-jobs", r);
+}
+if (scopeSet.has("memory")) {
+  const r = await deleteMemory();
+  record("memory", r);
+}
+if (scopeSet.has("github")) {
+  // Last: everything else is gone or reported before the code is.
+  const r = await deleteGitHub();
+  record("github", r);
+}
+
+// Categories explicitly skipped because not in scope
+for (const cat of ALL_CATEGORIES) {
+  if (!scopeSet.has(cat) && !report.deleted[cat] && !report.failed[cat] && !report.skipped[cat]) {
+    report.skipped[cat] = { status: "skipped", reason: "not in scope" };
+  }
+}
+
+report.completedAt = new Date().toISOString();
+report.durationMs = Date.now() - startedAt;
+
+console.log(JSON.stringify(report, null, 2));

@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "blockReadsOutsideWorkingDirectories": true,
+    "deny": [
+      "Read(//proc/**)",
+      "Read(//sys/**)",
+      "Read(~/.claude/**)",
+      "WebFetch",
+      "WebSearch"
+    ]
+  },
+  "sandbox": {
+    "enabled": true,
+    "allowUnsandboxedCommands": false,
+    "failIfUnavailable": true,
+    "network": {
+      "allowedDomains": []
+    },
+    "filesystem": {
+      "denyRead": ["/proc/*/environ"]
+    },
+    "credentials": {
+      "envVars": [
+        { "name": "ANTHROPIC_API_KEY", "mode": "deny" }
+      ]
+    }
+  }
+}

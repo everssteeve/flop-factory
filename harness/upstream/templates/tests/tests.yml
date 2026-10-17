@@ -1,0 +1,42 @@
+name: Tests et recette
+
+# Installé par /add-test (Hypervibe). À chaque push et à chaque pull request :
+# les tests passent, puis chaque fonctionnalité a sa vérification dans le cahier
+# de recette (scripts/check-recette.mjs). Une croix rouge sur GitHub = quelque
+# chose n'est pas recetté. Le hook pre-push du dépôt fait la même chose sur le
+# poste, avant l'envoi ; ici c'est la trace que tout le monde voit.
+#
+# Le jeton du dépôt est réduit à la lecture : un script d'installation de
+# dépendance n'a rien d'autre à portée. Et la liste des paquets autorisés à en
+# exécuter un est celle du projet (pnpm.onlyBuiltDependencies dans package.json,
+# ou allowBuilds dans pnpm-workspace.yaml), jamais « tous ».
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  recette:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: {{WEB_DIR}}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          # No automatic cache: with a package manager declared in package.json, setup-node looks
+          # for it before anything installed it, and the run stops here (Team trial, 30/09/2026).
+          package-manager-cache: false
+      - name: Installer les dépendances
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+      - name: Tests
+        run: pnpm test
+      - name: Cahier de recette complet
+        run: node scripts/check-recette.mjs

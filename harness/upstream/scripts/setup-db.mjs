@@ -1,0 +1,585 @@
+#!/usr/bin/env node
+// setup-db.mjs - Deterministic core for /add-db (Neon + Drizzle, single-project mode).
+//
+// Provisions a Neon Postgres project via REST API (NEON_API_KEY env var, no MCP),
+// installs the Neon serverless driver in the Next.js app, swaps the Drizzle client
+// to use neon-http, pushes the schema, and pushes DATABASE_URL via push-env-vars.mjs.
+//
+// MONOREPO is NOT supported in this v1 - the script refuses --monorepo with a clear
+// message; Claude is expected to handle that case manually (it's rare and involves
+// non-trivial code moves into packages/db/).
+//
+// Usage:
+//   node setup-db.mjs --name <project-name> [--web-dir .] [--description "..."] [--monorepo]
+//   node setup-db.mjs --name <project-name> --web-dir <monorepo-root> --provision-only
+//
+// --provision-only is what the monorepo path of /add-db runs: create the database (same EU
+// region, same organisation handling), write DATABASE_URL into <web-dir>/.env and the hosting,
+// record it in the manifest, and stop. No driver install, no client swap, no schema push:
+// in a monorepo those belong to packages/db and stay Claude-piloted. It replaces a bare
+// `curl POST /projects` that named NO region (so the database was created in the US) and
+// whose response put the connection string, password included, in the conversation.
+//
+// Args:
+//   --name        Neon project name + (informational) table prefix
+//   --web-dir     Directory containing package.json + next dep (default: cwd)
+//   --description Optional, currently unused (Neon API doesn't store description on free tier)
+//   --monorepo    If passed, the script fails - monorepo handling is Claude-piloted in v1.
+//   --provision-only  Create the database and deliver DATABASE_URL, nothing else (see above).
+//
+// stdout layout:
+//   - Live logs: ▸ <step>, ✅ <result>, ⚠️ <warning>
+//   - Handoff banner at the end (success OR failure)
+//   - Last line on success: a single JSON object Claude can parse:
+//       {"success": true, "projectId": "...", "host": "...", "projectName": "..."}
+//
+// Exit codes:
+//   0 = success
+//   1 = preflight failed (bad args, missing env, in monorepo)
+//   2 = a step failed mid-pipeline; partial state on disk; handoff banner explains
+
+import { spawnSync } from "node:child_process";
+import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { resolve, dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { render } from "./_render.mjs";
+import { readUserEnv } from "./_read-user-env.mjs";
+import { getSecret } from "./vault/vault.mjs";
+import { resolveNeonOrg, withOrg, withOrgBody, orgHint } from "./neon-org.mjs";
+
+import { ensureToolsInPath } from "./_ensure-tools-path.mjs";
+import { checkBeforeForcePush } from "./neon/schema-drift.mjs";
+
+// Prepend common CLI install dirs to process.env.PATH so subprocess invocations
+// (pnpm, gh, vercel, git, node) find their binaries even if Claude Code
+// inherited a stale PATH (typical when tools were just installed via /start).
+ensureToolsInPath();
+
+// Resolve the Neon API key. Source of truth = the Bitwarden vault (item NEON, field api_key).
+// Falls back to the legacy NEON_API_KEY env var (process.env then OS User scope) during the
+// migration period. The skill (/add-db) ensures the vault is unlocked + the key present before
+// calling this script (via the _get-secret pattern), so the non-interactive read here succeeds.
+// A LOCKED vault is not an absent key: the reason is kept, so that preflight can say
+// "open the vault" instead of sending the person to create a second key.
+let vaultLocked = false;
+function resolveNeonKey() {
+  try {
+    return getSecret("NEON", "api_key");
+  } catch (e) {
+    vaultLocked = e?.code === 2 || e?.code === 3;
+    // locked/expired/not-in-vault → fall back to the legacy env var.
+    return readUserEnv("NEON_API_KEY");
+  }
+}
+const NEON_API_KEY = resolveNeonKey();
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// ─── args ─────────────────────────────────────────────────────────────
+const args = process.argv.slice(2);
+let name = "";
+let webDir = ".";
+let description = "";
+let monorepoFlag = false;
+let provisionOnly = false;
+
+for (let i = 0; i < args.length; i++) {
+  const a = args[i];
+  if (a === "--name" && args[i + 1]) name = args[++i];
+  else if (a === "--web-dir" && args[i + 1]) webDir = args[++i];
+  else if (a === "--description" && args[i + 1]) description = args[++i];
+  else if (a === "--monorepo") monorepoFlag = true;
+  else if (a === "--provision-only") provisionOnly = true;
+  else fail(`Unknown arg: ${a}`);
+}
+
+if (!name) {
+  fail('Usage: node setup-db.mjs --name NAME [--web-dir .] [--description "..."] [--monorepo]');
+}
+if (!/^[a-z0-9][a-z0-9-]{0,48}[a-z0-9]$/.test(name)) {
+  fail(`--name must be kebab-case (lowercase a-z, 0-9, -), 2-50 chars. Got: ${name}`);
+}
+
+const WEB_DIR = resolve(process.cwd(), webDir);
+
+// ─── helpers ──────────────────────────────────────────────────────────
+const STEPS = provisionOnly
+  ? ["preflight", "listProjects", "createProject", "pushEnvVars"]
+  : ["preflight", "listProjects", "createProject", "installDriver", "swapDriver", "pushSchema", "pushEnvVars"];
+const completed = [];
+const warnings = [];
+let current = null;
+// State accumulated during the run; emitted as JSON on success.
+const state = {
+  projectName: name,
+  projectId: null,
+  host: null,
+  region: null,
+  connectionUri: null,
+};
+
+// Frankfurt: the same region as the hosting (fra1, set in vercel.json by bootstrap), and
+// in the EU, which is what the project's privacy policy promises. The monorepo path of
+// /add-db creates its database with this same value.
+const REGION = "aws-eu-central-1";
+
+async function step(stepName, fn) {
+  current = stepName;
+  await fn();
+  completed.push(stepName);
+  current = null;
+}
+
+function log(msg) {
+  console.log(`\n▸ ${msg}`);
+}
+function ok(msg) {
+  console.log(`  ✅ ${msg}`);
+}
+function warn(msg) {
+  console.warn(`  ⚠️  ${msg}`);
+  warnings.push(msg);
+}
+
+function dumpHandoff(success) {
+  const remaining = STEPS.filter((s) => !completed.includes(s) && s !== current);
+  console.log("\n────────────────────────────────────────────────────────");
+  console.log("setup-db handoff state");
+  console.log("────────────────────────────────────────────────────────");
+  console.log(`✅ Completed (${completed.length}/${STEPS.length}): ${completed.join(", ") || "none"}`);
+  if (current) console.log(`❌ Failed at: ${current}`);
+  if (remaining.length) console.log(`⏸  Not attempted: ${remaining.join(", ")}`);
+  if (warnings.length) {
+    console.log(`\n⚠️  ${warnings.length} warning(s) during the run:`);
+    for (const w of warnings) console.log(`   - ${w}`);
+  }
+  if (!success) {
+    console.log(
+      "\nFor the agent picking this up:\n" +
+        `  - Web dir: ${WEB_DIR}\n` +
+        `  - Neon project (if created): ${state.projectId || "not created"}\n` +
+        "  - Each step in this script maps 1:1 to a section of add-db SKILL.md.\n",
+    );
+  }
+  console.log("────────────────────────────────────────────────────────");
+}
+
+// Stop the process with an exact exit code, even right after a network call.
+// On Windows, process.exit() called within a few ms of the last HTTPS response crashes
+// Node (libuv assertion "UV_HANDLE_CLOSING") and the process reports 127 - the caller then
+// cannot tell 2 (partial, resume possible) from 1 (nothing done). Measured 2026-08-04:
+// systematic under 10 ms, never above 50 ms. The pause below is SYNCHRONOUS on purpose:
+// fail() must never return to its caller, so we cannot wait through the event loop.
+// It only ever runs on a failure path.
+function exitNow(code) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 100);
+  process.exit(code);
+}
+
+function fail(msg) {
+  console.error(`\n❌ ${msg}`);
+  if (completed.length || current) dumpHandoff(false);
+  exitNow(completed.length || current ? 2 : 1);
+}
+
+process.on("uncaughtException", (e) => {
+  console.error(`\n❌ Unhandled exception: ${e.message}`);
+  if (e.stack) console.error(e.stack);
+  dumpHandoff(false);
+  exitNow(2);
+});
+
+function run(cmd, cwd, opts = {}) {
+  const cmdStr = Array.isArray(cmd) ? cmd.join(" ") : cmd;
+  const res = spawnSync(cmdStr, {
+    cwd,
+    stdio: opts.capture ? "pipe" : "inherit",
+    shell: true,
+    encoding: "utf8",
+  });
+  if (res.status !== 0 && !opts.allowFail) {
+    if (opts.capture) {
+      if (res.stdout) process.stderr.write(res.stdout);
+      if (res.stderr) process.stderr.write(res.stderr);
+    }
+    fail(`Command failed (exit ${res.status}): ${cmdStr}`);
+  }
+  return res;
+}
+
+function capture(cmd, cwd) {
+  return run(cmd, cwd, { capture: true, allowFail: true });
+}
+
+// Which Neon organisation the projects belong to. Resolved once, on the first call.
+// Neon scopes /projects to ONE organisation and silently falls back to the account's
+// DEFAULT one when none is named, so without this the listing below can miss every
+// existing project and the creation can land somewhere the user never looks.
+let orgResolue = null;
+async function neonOrg() {
+  if (!orgResolue) {
+    orgResolue = await resolveNeonOrg(NEON_API_KEY, (item, field) => {
+      try { return getSecret(item, field) || ""; } catch { return ""; }
+    });
+  }
+  return orgResolue;
+}
+
+async function neonApi(method, path, body) {
+  if (!NEON_API_KEY) fail("NEON_API_KEY not found (neither in process.env, nor in User scope) - see the Step 1 preflight error.");
+  const org = await neonOrg();
+  // Only the COLLECTION endpoint is organisation-scoped, and it takes the organisation
+  // in the query when reading, inside `project` when creating. /projects/<id>/... already
+  // addresses one project and must carry neither.
+  const collection = /^\/projects(\?|$)/.test(path);
+  const url = collection && method === "GET" ? withOrg(path, org.orgId) : path;
+  const corps = collection && method === "POST" && body?.project
+    ? { ...body, project: withOrgBody(body.project, org.orgId) }
+    : body;
+  const res = await fetch(`https://console.neon.tech/api/v2${url}`, {
+    method,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${NEON_API_KEY}`,
+      Accept: "application/json",
+    },
+    body: corps ? JSON.stringify(corps) : undefined,
+  });
+  const text = await res.text();
+  let data = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    /* keep text */
+  }
+  if (!res.ok) {
+    const detail = data?.message || data?.error || text || `HTTP ${res.status}`;
+    fail(`Neon API ${method} ${path} → ${res.status}: ${detail}`);
+  }
+  return data;
+}
+
+// ─── Step 1: preflight ────────────────────────────────────────────────
+async function preflight() {
+  log("Preflight");
+
+  if (monorepoFlag && !provisionOnly) {
+    fail(
+      "MONOREPO_NOT_SUPPORTED_IN_V1: setup-db.mjs only handles single-project setups. " +
+        "For monorepos (apps/web + packages/db pattern), Claude must scaffold the shared " +
+        "packages/db package manually following the add-db SKILL.md instructions.",
+    );
+  }
+
+  if (!NEON_API_KEY && vaultLocked) {
+    fail(
+      "VAULT_LOCKED: the vault is locked or its session expired, so the Neon key (item NEON, field api_key) could not be read.\n" +
+        "Nothing is missing: open the vault (node scripts/vault/launch.mjs unlock), then re-run this script.\n" +
+        "Do NOT create a new key.",
+    );
+  }
+  if (!NEON_API_KEY) {
+    fail(
+      "NEON_API_KEY not found (neither in the Bitwarden vault item NEON.api_key, nor in an environment variable).\n" +
+        "Create a key at https://console.neon.tech/app/settings/api-keys, then store it in the vault:\n" +
+        '  node scripts/vault/launch.mjs add --name NEON --service Neon --fields api_key:secret\n' +
+        "(if the vault is not set up, run the _add-keyring skill first). Then re-run this script.",
+    );
+  }
+
+  const pkgPath = join(WEB_DIR, "package.json");
+  if (!existsSync(pkgPath)) {
+    fail(`No package.json at ${WEB_DIR}. Pass --web-dir <path-to-nextjs-app> if needed.`);
+  }
+  if (provisionOnly) {
+    // The database and its DATABASE_URL only: nothing is installed or rewritten, so the
+    // folder does not have to be a Next.js app (it is the root of a monorepo).
+    ok(`Provision only, DATABASE_URL will be written in: ${WEB_DIR}`);
+    return;
+  }
+  const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
+  const deps = { ...pkg.dependencies, ...pkg.devDependencies };
+  if (!deps.next) fail(`${WEB_DIR} doesn't depend on Next.js - add-db requires a Next.js project.`);
+  if (!deps["drizzle-orm"]) {
+    fail(
+      `${WEB_DIR} doesn't depend on drizzle-orm - this script assumes a T3 scaffold has run first. ` +
+        "Run /bootstrap before /add-db, or install Drizzle manually.",
+    );
+  }
+
+  // pnpm available?
+  const pnpm = capture("pnpm --version", WEB_DIR);
+  if (pnpm.status !== 0) fail("pnpm CLI is missing or broken.");
+
+  ok(`Web dir OK: ${WEB_DIR}`);
+}
+
+// ─── Step 2: list projects ────────────────────────────────────────────
+// Surfaces an early warning if the user is approaching the free-tier limit.
+// Doesn't block - Neon free tier currently caps at 100 projects, free users typically
+// have 0-5, but this guards against the "I have 100 projects" edge case where the
+// next step would otherwise fail with a less-clear error.
+async function listProjects() {
+  log("Listing existing Neon projects");
+  const data = await neonApi("GET", "/projects?limit=100");
+  const count = (data?.projects || []).length;
+  // Say WHERE that count comes from. "0 existing project(s)" on an account full of
+  // projects is the exact reading that used to send people looking in the wrong place.
+  ok(`${count} existing project(s) on the account. ${orgHint(await neonOrg())}`);
+
+  if (count >= 95) {
+    warn(
+      `NEON_QUOTA_NEAR_LIMIT: ${count}/100 projects used on the free tier. ` +
+        "Creating a new project may fail. Consider deleting an unused one first.",
+    );
+  }
+
+  // Detect name conflict - Neon allows duplicate project names but it's bad UX.
+  const conflict = (data?.projects || []).find((p) => p.name === name);
+  if (conflict) {
+    warn(
+      `NEON_PROJECT_NAME_CONFLICT: a project named "${name}" already exists (id=${conflict.id}). ` +
+        "A new project with the same name will be created (Neon allows duplicates), " +
+        "but consider renaming or deleting the existing one for clarity.",
+    );
+  }
+}
+
+// ─── Step 3: create project ───────────────────────────────────────────
+async function createProject() {
+  log(`Creating Neon project "${name}" in ${REGION} (Frankfurt)`);
+  const data = await neonApi("POST", "/projects", {
+    project: {
+      name,
+      // Pin to Frankfurt - same datacenter region as our Vercel functions
+      // (fra1, set in vercel.json by bootstrap). Neon's default region is
+      // US East, which adds ~140-160ms RTT per query for EU-resident
+      // serverless functions, defeating the point of running in fra1.
+      // Other EU regions: aws-eu-west-2 (London), azure-germanywestcentral.
+      region_id: REGION,
+    },
+  });
+
+  state.projectId = data?.project?.id;
+  if (!state.projectId) fail("Neon API returned no project.id - unexpected response shape.");
+  // Where the database REALLY is: what the provider answers, never what was asked. The
+  // privacy policy of the project is written from it.
+  state.region = data?.project?.region_id || null;
+  if (state.region !== REGION) {
+    warn(
+      `NEON_REGION_MISMATCH: asked for ${REGION}, the provider answered ${state.region || "no region"}. ` +
+        "Tell the user before going further: the project's privacy policy promises where the data lives.",
+    );
+  }
+
+  // Pick the pooled connection URI when available - better for serverless / edge runtimes.
+  const uris = data?.connection_uris || [];
+  const pooled = uris.find((u) => u.connection_uri?.includes("-pooler.")) || uris[0];
+  state.connectionUri = pooled?.connection_uri;
+  if (!state.connectionUri) fail("Neon API returned no connection_uri - unexpected response shape.");
+
+  // Extract host for human-readable summary.
+  try {
+    const u = new URL(state.connectionUri);
+    state.host = u.host;
+  } catch {
+    state.host = "(parse failed)";
+  }
+
+  ok(`Project ${state.projectId} created · host: ${state.host}`);
+}
+
+// ─── Step 4: install Neon driver ──────────────────────────────────────
+async function installDriver() {
+  log("Installing @neondatabase/serverless");
+  run("pnpm add @neondatabase/serverless", WEB_DIR);
+  // T3 (postgres dbProvider) installs the `postgres` package as the driver. Once we
+  // swap to neon-http we don't need it anymore - but uninstalling can break user code
+  // that imported postgres elsewhere. Safer to leave it as an unused dep; the user
+  // can `pnpm remove postgres` later if they want.
+  ok("@neondatabase/serverless installed");
+}
+
+// ─── Step 5: swap Drizzle client to neon-http ─────────────────────────
+async function swapDriver() {
+  log("Swapping Drizzle client to neon-http");
+  const dbIndexPath = join(WEB_DIR, "src/server/db/index.ts");
+  if (!existsSync(dbIndexPath)) {
+    fail(
+      `${dbIndexPath} not found - T3 may have moved the db client. ` +
+        "Locate the db client manually and swap its driver to:\n" +
+        '  import { neon } from "@neondatabase/serverless";\n' +
+        '  import { drizzle } from "drizzle-orm/neon-http";\n' +
+        "  const sql = neon(env.DATABASE_URL);\n" +
+        "  export const db = drizzle(sql, { schema });",
+    );
+  }
+
+  // Overwrite with the canonical Neon-flavored client (template: templates/db/index.ts).
+  // We intentionally don't try to preserve user edits to this file - at /add-db time
+  // it's the T3 default.
+  writeFileSync(dbIndexPath, render("db/index.ts", {}));
+  ok("src/server/db/index.ts rewritten for Neon serverless");
+}
+
+// ─── Step 6: push schema ──────────────────────────────────────────────
+async function pushSchema() {
+  log("Pushing schema with drizzle-kit");
+  // Use --force (drizzle-kit 0.30+) to skip the interactive "ALTER vs DROP+CREATE"
+  // prompt on a fresh empty DB. If --force is rejected on older versions, retry without.
+  const env = { ...process.env, DATABASE_URL: state.connectionUri };
+  // --force also accepts data-loss statements. On a fresh database there is
+  // nothing to lose, but the database may already hold tables: say what the
+  // push would destroy before letting --force through (scripts/neon/schema-drift.mjs).
+  const drift = await checkBeforeForcePush({ dir: WEB_DIR, env });
+  if (drift.status !== "safe") console.log(drift.text);
+  if (drift.block) {
+    keepConnection();
+    fail(
+      "Schema NOT pushed: the live database holds data that schema.ts does not declare (listed above), " +
+        "and the push would delete it. Show the list to the user, declare those tables/columns in schema.ts " +
+        "or get an explicit go to drop them, then push by hand.",
+    );
+  }
+  const probe = spawnSync("npx drizzle-kit push --help", {
+    cwd: WEB_DIR,
+    stdio: "pipe",
+    shell: true,
+    encoding: "utf8",
+    env,
+  });
+  const supportsForce = drift.allowForce && probe.stdout?.includes("--force");
+  const cmd = supportsForce ? "npx drizzle-kit push --force" : "npx drizzle-kit push";
+
+  const res = spawnSync(cmd, {
+    cwd: WEB_DIR,
+    stdio: "inherit",
+    shell: true,
+    env,
+  });
+  if (res.status !== 0) {
+    const kept = keepConnection();
+    fail(
+      `drizzle-kit push failed (exit ${res.status}). ` +
+        "The Neon project IS provisioned, but the schema didn't push. " +
+        (kept
+          ? "DATABASE_URL is already written in .env and on the hosting: fix the schema, then retry with `cd " +
+            WEB_DIR +
+            " && pnpm db:push`. The connection string never has to be typed or shown."
+          : "DATABASE_URL could NOT be written either: read it again from the Neon API for project " +
+            state.projectId +
+            " straight into .env, never into the conversation."),
+    );
+  }
+  ok("Schema pushed");
+}
+
+// The connection string exists in ONE place, this process. When a later step fails it must
+// still land where the project reads it: a created database whose connection string was
+// dropped on the floor left the agent reading it again from the API and pasting it in clear.
+let connectionDelivered = false;
+function deliverDatabaseUrl() {
+  const helper = join(__dirname, "push-env-vars.mjs");
+  if (!existsSync(helper)) return { ok: false, helper };
+  // The connection string is a secret, whole: it goes to the helper on its standard
+  // input. As an argument it was readable in the process list.
+  const res = spawnSync("node", [helper, "--stdin"], {
+    cwd: WEB_DIR,
+    input: `DATABASE_URL=${state.connectionUri}\n`,
+    stdio: ["pipe", "inherit", "inherit"],
+    shell: false,
+  });
+  connectionDelivered = res.status === 0;
+  return { ok: connectionDelivered, helper };
+}
+function keepConnection() {
+  if (!state.connectionUri || connectionDelivered) return connectionDelivered;
+  log("Keeping DATABASE_URL (the database exists, its connection string must not be lost)");
+  return deliverDatabaseUrl().ok;
+}
+
+// ─── Step 7: push DATABASE_URL via the env helper ─────────────────────
+async function pushEnvVars() {
+  log("Pushing DATABASE_URL to .env and Vercel");
+  const helper = join(__dirname, "push-env-vars.mjs");
+  if (!existsSync(helper)) fail(`Sibling script missing: ${helper}`);
+  // On failure this script used to PRINT the connection string, password included, straight
+  // into the conversation. It is never printed any more (see deliverDatabaseUrl).
+  const res = { status: deliverDatabaseUrl().ok ? 0 : 1 };
+  if (res.status !== 0) {
+    fail(
+      "push-env-vars.mjs failed to push DATABASE_URL. " +
+        "The Neon project IS provisioned and the schema IS pushed; only the env var didn't land everywhere. " +
+        "The helper writes the project's .env FIRST, so the value is normally already there. " +
+        "Retry without ever showing it: `cd " +
+        WEB_DIR +
+        " && grep '^DATABASE_URL=' .env | node " +
+        helper +
+        " --stdin`. If .env does not hold it, the connection string can be read again from the Neon API " +
+        "(GET /projects/" +
+        state.projectId +
+        "/connection_uri). Never print it, never paste it in the conversation.",
+    );
+  }
+  ok("DATABASE_URL written locally + pushed to Vercel");
+}
+
+// ─── MAIN ─────────────────────────────────────────────────────────────
+await step("preflight", preflight);
+await step("listProjects", listProjects);
+await step("createProject", createProject);
+if (!provisionOnly) {
+  await step("installDriver", installDriver);
+  await step("swapDriver", swapDriver);
+  await step("pushSchema", pushSchema);
+}
+await step("pushEnvVars", pushEnvVars);
+
+dumpHandoff(true);
+
+// Record the freshly created Neon project in the resource manifest: this is
+// what lets /save-project and /delete-project find it with certainty instead
+// of guessing by name. Never fatal - the database itself is up.
+{
+  const r = spawnSync(
+    "node",
+    [
+      join(__dirname, "manifest", "manifest.mjs"),
+      "add",
+      "--project-dir", WEB_DIR,
+      "--kind", "neon-project",
+      "--id", state.projectId,
+      "--name", state.projectName,
+      "--field", `host=${state.host}`,
+      // Where the data lives, as the provider answered it: what lets the harness assert
+      // later that this database is where the privacy policy says it is.
+      ...(state.region ? ["--field", `region=${state.region}`] : []),
+      "--added-by", "add-db",
+    ],
+    { encoding: "utf8" },
+  );
+  if (r.status === 0) ok("Recorded in the project resource manifest (.hypervibe/resources.json)");
+  else warn(`Could not record in the resource manifest: ${(r.stdout || r.stderr || "").trim().slice(0, 160)}`);
+}
+
+console.log(`
+
+   Neon project: ${state.projectName} (${state.projectId})
+   Host:         ${state.host}
+   Region:       ${state.region || "unknown (the provider did not say)"}
+   Schema:       ${provisionOnly ? "NOT pushed (provision only: push it from the package that holds drizzle.config)" : "pushed"}
+   Env vars:     DATABASE_URL written to .env + Vercel
+
+Next: Claude takes over for the CLAUDE.md update (via _update-claude-md) and the user-facing summary.
+`);
+
+// Last line: structured JSON for Claude to parse.
+console.log(
+  JSON.stringify({
+    success: true,
+    projectId: state.projectId,
+    host: state.host,
+    region: state.region,
+    projectName: state.projectName,
+  }),
+);

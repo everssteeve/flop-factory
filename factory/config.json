@@ -1,0 +1,44 @@
+{
+  "$comment": "Configuration de l'usine. Toute modification de ce fichier par le cerveau doit passer par une PR (branche protégée).",
+  "budget": {
+    "dailyEur": 5,
+    "usdPerEur": 1.16,
+    "$usdPerEurComment": "Taux de conversion approximatif, à mettre à jour. Les coûts renvoyés par Claude Code sont en USD.",
+    "timezone": "Europe/Paris",
+    "shares": {
+      "build": 0.45,
+      "qualite": 0.15,
+      "cerveau": 0.15,
+      "decouverte": 0.10,
+      "gtm": 0.10,
+      "run": 0.05
+    },
+    "perRunCapShare": 0.5,
+    "$perRunCapShareComment": "Un run ne peut consommer qu'au plus cette fraction de l'enveloppe journalière restante de son atelier."
+  },
+  "models": {
+    "default": "haiku",
+    "escalation": "sonnet",
+    "byAtelier": {
+      "build": "haiku",
+      "qualite": "haiku",
+      "cerveau": "sonnet",
+      "decouverte": "haiku",
+      "gtm": "haiku",
+      "run": "haiku"
+    },
+    "escalateAfterFailures": 2
+  },
+  "runs": {
+    "maxTurns": 60
+  },
+  "kill": {
+    "afterDays": 30,
+    "metric": "signups",
+    "minimum": 20
+  },
+  "publisher": {
+    "name": "Steeve Evers",
+    "status": "personne physique"
+  }
+}

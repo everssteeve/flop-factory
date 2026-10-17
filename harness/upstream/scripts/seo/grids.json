@@ -1,0 +1,51 @@
+{
+  "about": "The fixed grids of /seo and /geo (3.4.12): every check and its weight. The score is computed by report.mjs from the status given to each check, never judged as a whole: the same site gives the same score twice, and two passes compare. ok counts the weight, warn half of it, fail nothing; na (does not apply) leaves the check out of the maximum. A weight of 0 is recorded without counting (a bet, or a measure). Changing a grid changes its id: scores are compared only on the same grid.",
+  "seo": {
+    "id": "seo-2026-10",
+    "checks": [
+      { "id": "meta.titles", "weight": 3, "label": "Each page has its own title, 50 to 60 characters, carrying its main keyword" },
+      { "id": "meta.descriptions", "weight": 2, "label": "Each page has its own description, 150 to 160 characters" },
+      { "id": "meta.basics", "weight": 1, "label": "The language on <html>, the viewport, the favicon" },
+      { "id": "social.share", "weight": 2, "label": "Shared links show a title, a description and an image (Open Graph, X card)" },
+      { "id": "html.headings", "weight": 2, "label": "One h1 per page, headings in order" },
+      { "id": "html.semantics", "weight": 1, "label": "The landmarks: main, nav, header, footer" },
+      { "id": "html.images-alt", "weight": 2, "label": "Every image has its alt text (empty for a decorative one)" },
+      { "id": "tech.robots", "weight": 2, "label": "robots.txt names the sitemap and closes nothing by mistake" },
+      { "id": "tech.sitemap", "weight": 2, "label": "The sitemap lists the real public pages, with a real date only when known" },
+      { "id": "tech.canonical", "weight": 2, "label": "Each page names its canonical address" },
+      { "id": "tech.urls", "weight": 1, "label": "Short addresses in lowercase words joined by hyphens, no opaque identifier" },
+      { "id": "tech.i18n", "weight": 2, "label": "Each language version names the others (hreflang) and is in the sitemap" },
+      { "id": "perf.assets", "weight": 1, "label": "Images through next/image, fonts through next/font" },
+      { "id": "data.structured", "weight": 2, "label": "Structured data: the site (WebSite) and its owner (Person or Organization) with their profiles" },
+      { "id": "data.local", "weight": 2, "label": "A local business: LocalBusiness with address, hours and area, the same name, address and telephone everywhere, the Google Business Profile linked" },
+      { "id": "a11y.quick-wins", "weight": 2, "label": "Accessibility quick wins: labelled buttons and fields, descriptive link texts, visible focus" },
+      { "id": "content.keywords", "weight": 2, "label": "The main keywords in the titles, h1 and descriptions of their pages" },
+      { "id": "content.coverage", "weight": 2, "label": "Each key page covers its topic: the entities and sub-topics its readers expect" },
+      { "id": "content.readability", "weight": 1, "label": "Reading ease suited to the audience" },
+      { "id": "content.cannibalization", "weight": 1, "label": "No two pages aim at the same keyword" },
+      { "id": "content.freshness", "weight": 1, "label": "Dated content shows its dates (visible, and in its structured data)" },
+      { "id": "live.indexable", "weight": 3, "label": "Online: no page kept out of the index by mistake, a missing page answers 404" },
+      { "id": "live.addresses", "weight": 3, "label": "Online: no localhost nor *.vercel.app in canonical addresses, the *.vercel.app address not doubling the site, permanent moves as 301 or 308" },
+      { "id": "live.links", "weight": 2, "label": "Online: no internal link leads nowhere" },
+      { "id": "live.sitemap", "weight": 2, "label": "Online: every address of the sitemap answers, is canonical and indexable" }
+    ]
+  },
+  "geo": {
+    "id": "geo-2026-10",
+    "checks": [
+      { "id": "ai.readable-html", "weight": 4, "label": "The main text of the key pages is in their HTML (AI robots almost never run JavaScript)" },
+      { "id": "ai.not-blocked", "weight": 4, "label": "No firewall turns AI robots away unless chosen (the zone host's setting, the hosting's)" },
+      { "id": "ai.robots-policy", "weight": 3, "label": "robots.txt says a chosen policy for AI robots, from the current list, with no retired name" },
+      { "id": "ai.llms-txt", "weight": 0, "label": "llms.txt (a bet: no major AI engine confirms reading it for its answers)" },
+      { "id": "content.citability", "weight": 2, "label": "Facts an AI can cite: figures, dates, named sources (hints to re-read, not defects)" },
+      { "id": "content.eeat", "weight": 2, "label": "Who writes and why they can be trusted: experience, expertise, authority, trust" },
+      { "id": "content.chunking", "weight": 1, "label": "Paragraphs that stand on their own when quoted alone (hints to re-read)" },
+      { "id": "content.qa-format", "weight": 1, "label": "Questions as headings, answered right away" },
+      { "id": "data.faqpage", "weight": 0, "label": "FAQPage markup on real visible questions (its effect on AI answers is plausible, not demonstrated)" },
+      { "id": "data.entity", "weight": 1, "label": "The owner described as an entity (Person or Organization) with its profiles (sameAs)" },
+      { "id": "index.indexnow", "weight": 1, "label": "New pages announced at once (IndexNow), for a site that publishes" },
+      { "id": "index.bing", "weight": 1, "label": "The site connected to Bing Webmaster Tools (Bing feeds Copilot)" },
+      { "id": "measure.citations", "weight": 0, "label": "The guided check: the questions customers ask, put to the AI engines, cited or not" }
+    ]
+  }
+}

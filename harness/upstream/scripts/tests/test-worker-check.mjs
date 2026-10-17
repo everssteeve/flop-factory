@@ -1,0 +1,208 @@
+#!/usr/bin/env node
+// test-worker-check.mjs - The shared worker check run by the update skill.
+//
+//   node scripts/tests/test-worker-check.mjs
+//
+// What must hold, on any machine:
+//   - no worker folder: "absent", and nothing gets created (creating a worker
+//     is /start's call, never an update's);
+//   - a worker.js identical to the plugin's: "up_to_date", left untouched;
+//   - the R2 storage bug of the old workers is recognised by name, and a
+//     fixed worker is never mistaken for it;
+//   - a stale copy is repaired through ensure.mjs and committed locally.
+//
+// Temporary folders only. The repair runs ensure.mjs with --no-deploy, so
+// nothing reaches Cloudflare, and the global git config is neutralised so that
+// no hook of this machine runs on the throwaway commits.
+
+import { spawnSync } from "node:child_process";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
+const CHECK = join(ROOT, "scripts", "shared-worker", "worker-check.mjs");
+const LATEST = readFileSync(join(ROOT, "scripts", "shared-worker", "worker.js"), "utf8");
+
+// The storage query as the old workers shipped it.
+const R2_BUG = `const query = \`query R2Storage($accountTag: string!, $start: Time!, $end: Time!) {
+  viewer { accounts(filter: { accountTag: $accountTag }) {
+    r2StorageAdaptiveGroups(limit: 1, filter: { datetime_geq: $start, datetime_leq: $end }) {
+      max { payloadSize metadataSize objectCount }
+    }
+  } }
+}\`;
+`;
+
+const temps = [];
+const scratch = mkdtempSync(join(tmpdir(), "hv-worker-check-"));
+temps.push(scratch);
+const emptyGitConfig = join(scratch, "gitconfig");
+writeFileSync(emptyGitConfig, "");
+const ENV = {
+  ...process.env,
+  GIT_CONFIG_GLOBAL: emptyGitConfig,
+  GIT_CONFIG_NOSYSTEM: "1",
+  // A home folder of its own: the vault of the machine the recette runs on is never reached (with
+  // no session there, the scripts take the token of the recette, as with the vault locked).
+  HOME: scratch,
+  USERPROFILE: scratch,
+  APPDATA: join(scratch, "appdata"),
+  LOCALAPPDATA: join(scratch, "localappdata"),
+  // ensure.mjs wants a token before anything else, even with --no-deploy.
+  // Used only when the vault is locked, and never sent anywhere.
+  CLOUDFLARE_API_TOKEN: process.env.CLOUDFLARE_API_TOKEN || "test-token-never-used",
+};
+
+let passed = 0;
+let failed = 0;
+function check(name, cond, detail) {
+  if (cond) {
+    passed++;
+    console.log(`  ok    ${name}`);
+  } else {
+    failed++;
+    console.log(`  FAIL  ${name}${detail ? `\n        ${detail}` : ""}`);
+  }
+}
+
+function run(dir, ...flags) {
+  const r = spawnSync(process.execPath, [CHECK, "--dir", dir, ...flags], { encoding: "utf8", env: ENV });
+  let json = null;
+  try {
+    json = JSON.parse((r.stdout || "").trim().split("\n").pop());
+  } catch {
+    // Left null: the checks below report the raw output.
+  }
+  return { json, raw: `${r.stdout || ""}${r.stderr || ""}`.trim() };
+}
+
+function workerDir(source) {
+  const dir = mkdtempSync(join(tmpdir(), "hv-jobs-"));
+  temps.push(dir);
+  writeFileSync(join(dir, "wrangler.toml"), 'name = "hypervibe-jobs-test"\nmain = "worker.js"\n');
+  writeFileSync(join(dir, "jobs.js"), 'export default {"jobs": []};\n');
+  writeFileSync(join(dir, "worker.js"), source);
+  return dir;
+}
+
+try {
+  {
+    const dir = join(scratch, "no-worker-here");
+    const r = run(dir);
+    check("no worker: status absent", r.json?.ok === true && r.json?.status === "absent", r.raw);
+    check("no worker: nothing created", !existsSync(dir));
+  }
+
+  {
+    const dir = workerDir(LATEST);
+    const r = run(dir);
+    check("same worker.js: status up_to_date", r.json?.ok === true && r.json?.status === "up_to_date", r.raw);
+    check("same worker.js: left untouched", !existsSync(join(dir, ".git")));
+  }
+
+  {
+    const dir = workerDir(R2_BUG);
+    const r = run(dir, "--dry-run");
+    check("R2 bug: status stale", r.json?.ok === true && r.json?.status === "stale", r.raw);
+    check(
+      "R2 bug: recognised by name",
+      Array.isArray(r.json?.knownBugs) && r.json.knownBugs.some((b) => b.id === "r2-storage-single-bucket"),
+      r.raw,
+    );
+    check("R2 bug: a dry run changes nothing", readFileSync(join(dir, "worker.js"), "utf8") === R2_BUG);
+  }
+
+  {
+    // The two defects fixed on 2026-09-18, as the old workers shipped them:
+    // Neon egress summed over the account, and a failed backup never mailed.
+    const dir = workerDir(
+      [
+        "const NEON_FREE = { egressGB: 5 };",
+        "  if (egressGB >= (NEON_FREE.egressGB * pct) / 100) {}",
+        "  const cfg = job.config || {};",
+        "  if (!resolveEmailProvider(env, cfg) || !cfg.senderEmail || !cfg.recipient) {}",
+        "",
+      ].join("\n"),
+    );
+    const r = run(dir, "--dry-run");
+    const ids = (r.json?.knownBugs ?? []).map((b) => b.id);
+    check("egress bug: recognised by name", ids.includes("neon-egress-summed-across-projects"), r.raw);
+    check("snapshot alert bug: recognised by name", ids.includes("snapshot-failure-never-mailed"), r.raw);
+    check("old Neon worker: not mistaken for the R2 bug", !ids.includes("r2-storage-single-bucket"), r.raw);
+    check("old Neon worker: not mistaken for the braces bug either (it has no escaping function to judge)", !ids.includes("alert-email-braces-dropped"), r.raw);
+  }
+
+  {
+    // The defect fixed in 3.3.11, as the old workers shipped it: the words of others entered an
+    // alert email with their braces, and an email service that meets `{{` drops the email.
+    const dir = workerDir(
+      ["function escapeHtml(s) {", '  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");', "}", ""].join("\n"),
+    );
+    const r = run(dir, "--dry-run");
+    const ids = (r.json?.knownBugs ?? []).map((b) => b.id);
+    check("braces bug: recognised by name", ids.includes("alert-email-braces-dropped"), r.raw);
+    check("braces bug: the only one claimed", ids.length === 1, r.raw);
+  }
+
+  {
+    // The defect fixed in 3.4.8 / 2.4.7, as the old workers shipped it: the watch listed Neon's
+    // projects with whatever organisation the registry named (none, since nothing wrote it), and
+    // mailed Neon's raw reply when Neon refused ("org_id is required").
+    const dir = workerDir(
+      [
+        "async function checkNeonUsage(env, cfg) {",
+        '  const orgId = cfg.neonOrgId || env.NEON_ORG_ID || "";',
+        '  const scope = orgId ? `&org_id=${encodeURIComponent(orgId)}` : "";',
+        '  const { projects } = await neon("GET", `/projects?limit=400${scope}`, env.NEON_API_KEY);',
+        "}",
+        "",
+      ].join("\n"),
+    );
+    const r = run(dir, "--dry-run");
+    const ids = (r.json?.knownBugs ?? []).map((b) => b.id);
+    check("Neon organisation bug: recognised by name", ids.includes("quota-watch-neon-org-required"), r.raw);
+    check("Neon organisation bug: the only one claimed", ids.length === 1, r.raw);
+  }
+
+  {
+    // The fixed worker, one comment apart: stale, but no bug claimed.
+    const dir = workerDir(`${LATEST}\n// an older build\n`);
+    const r = run(dir, "--dry-run");
+    check("other difference: status stale", r.json?.status === "stale", r.raw);
+    check(
+      "other difference: the fixed worker is not mistaken for the R2 bug",
+      Array.isArray(r.json?.knownBugs) && r.json.knownBugs.length === 0,
+      r.raw,
+    );
+  }
+
+  const wrangler = spawnSync("wrangler --version", { shell: true, encoding: "utf8" });
+  if (wrangler.status !== 0) {
+    console.log("  skip  repair (wrangler is not installed on this machine, ensure.mjs requires it)");
+  } else {
+    const dir = workerDir(R2_BUG);
+    const r = run(dir, "--no-deploy");
+    check("repair: status updated", r.json?.ok === true && r.json?.status === "updated", r.raw);
+    check(
+      "repair: the fixed bug is named",
+      Array.isArray(r.json?.knownBugs) && r.json.knownBugs.some((b) => b.id === "r2-storage-single-bucket"),
+      r.raw,
+    );
+    check("repair: worker.js is now the plugin's", readFileSync(join(dir, "worker.js"), "utf8") === LATEST);
+    const history = spawnSync("git", ["log", "--format=%s"], { cwd: dir, encoding: "utf8", env: ENV });
+    check(
+      "repair: committed in the local repo",
+      /update worker\.js to the latest plugin version/.test(history.stdout || ""),
+      `${history.stdout || ""}${history.stderr || ""}`.trim(),
+    );
+    const again = run(dir);
+    check("repair: the next run finds it up to date", again.json?.status === "up_to_date", again.raw);
+  }
+} finally {
+  for (const d of temps) rmSync(d, { recursive: true, force: true, maxRetries: 3 });
+}
+
+console.log(`\n${passed} passed, ${failed} failed`);
+process.exit(failed ? 1 : 0);

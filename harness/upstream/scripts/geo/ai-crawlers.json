@@ -1,0 +1,335 @@
+{
+  "checked": "2026-10-14",
+  "reviewEveryDays": 90,
+  "about": "The AI robots /geo knows (3.4.12): each one's exact name (the token robots.txt names), its operator, its role, what its operator says of robots.txt, what blocking it means, its default in the strategy \"cited-not-trained\", a sample of the full name it sends when its operator publishes one, and the official pages that say so (paraphrased, with their address). Read by scripts/geo/crawlers.mjs and fetch-as-ai.mjs; watched every week by hypervibe-watch, which checks that each name is still on its official page and looks for new ones there. Change it only after reading the official pages again, then move \"checked\".",
+  "roles": {
+    "search-index": "fills the search index an AI answer engine draws from and cites",
+    "user-fetch": "fetches a page live because someone asked for it in a chat; some operators say these fetches may not follow robots.txt",
+    "training": "collects pages to train models",
+    "opt-out-token": "not a robot of its own: a name in robots.txt that controls one use of what another robot fetched"
+  },
+  "leftOut": [
+    {
+      "about": "The search engines' own robots (Google's, Bing's, Apple's, DuckDuckGo's): Google's AI Overviews and AI Mode are part of Google Search, Copilot answers from Bing's index, Apple's AI answers draw on Apple's search robot. Blocking them takes the site out of the search engine itself; \"block all AI robots\" never touches them.",
+      "controls": "Google: the snippet rules (nosnippet, max-snippet, data-nosnippet), and since 31 August 2026 the Search Console setting Settings > Search generative AI, which can exclude a whole site from AI Overviews and AI Mode. Bing: the NOARCHIVE meta tag keeps a page out of Copilot's answers, NOCACHE limits them to its address, title and snippet. Apple: nosnippet keeps a page out of its AI answers.",
+      "sources": [
+        { "url": "https://developers.google.com/search/docs/appearance/ai-features", "says": "AI Overviews and AI Mode draw on pages indexed by Google Search and eligible to show a snippet; robots.txt rules for Google's search robot and the snippet controls are what site owners use." },
+        { "url": "https://support.google.com/webmasters/answer/16908024?hl=en", "says": "A Search Console setting (Settings > Search generative AI) includes or excludes a site from AI Overviews, AI Mode and generative AI in Discover; it does not affect training." },
+        { "url": "https://www.bing.com/webmasters/help/webmaster-guidelines-30fba23a", "says": "Bing search, Copilot and grounding results rest on the same crawl and index; noindex removes a page from all three." },
+        { "url": "https://support.apple.com/en-us/119829", "says": "Apple's search robot powers Spotlight, Siri and Safari; nosnippet keeps content out of AI answers drawing on broad world knowledge; training is controlled by Applebot-Extended." }
+      ]
+    },
+    {
+      "about": "Robots that are not about AI answers: link previews (blocking Meta's preview robot removes the picture and title of links shared on Meta's apps), ads checks (OpenAI's and Meta's), generic research crawls, and crawls a site owner requests for their own AI agent (Google's).",
+      "sources": [
+        { "url": "https://developers.facebook.com/documentation/sharing/webmasters/web-crawlers.md", "says": "facebookexternalhit fetches the title, description and image of links shared in Meta's apps; meta-externalads crawls for advertising products." },
+        { "url": "https://developers.openai.com/api/docs/bots", "says": "OAI-AdsBot visits only pages submitted as ads, to check them." },
+        { "url": "https://developers.google.com/crawling/docs/crawlers-fetchers/google-common-crawlers", "says": "GoogleOther affects no specific product; Google-CloudVertexBot crawls what site owners request for their Vertex AI agents." }
+      ]
+    },
+    {
+      "about": "Bytespider: ByteDance's official page presents it as Toutiao Search's crawler, and says nothing of AI, training or robots.txt. Left out until an official page says what it does for AI.",
+      "sources": [
+        { "url": "https://zhanzhang.toutiao.com/docs/intro/26899/", "says": "Bytespider is the crawler of Toutiao Search; the page gives its user agents and address ranges." }
+      ]
+    }
+  ],
+  "crawlers": [
+    {
+      "token": "OAI-SearchBot",
+      "operator": "OpenAI",
+      "product": "ChatGPT search",
+      "role": "search-index",
+      "honorsRobotsTxt": true,
+      "whenBlocked": "The site is no longer shown in ChatGPT search answers (it can still appear as a plain navigation link). A change takes about 24 hours.",
+      "strategy": { "cited-not-trained": "allow" },
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36; compatible; OAI-SearchBot/1.4; +https://openai.com/searchbot",
+      "sources": [{ "url": "https://developers.openai.com/api/docs/bots", "says": "Surfaces websites in ChatGPT search; OpenAI recommends allowing it in robots.txt, independently of GPTBot." }]
+    },
+    {
+      "token": "ChatGPT-User",
+      "operator": "OpenAI",
+      "product": "ChatGPT and custom GPTs",
+      "role": "user-fetch",
+      "honorsRobotsTxt": "user-initiated",
+      "whenBlocked": "ChatGPT may no longer fetch the site's pages when someone asks it to, although OpenAI says robots.txt rules may not apply to these fetches, since a user asked. It does not decide whether the site appears in ChatGPT search.",
+      "strategy": { "cited-not-trained": "allow" },
+      "userAgent": "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko); compatible; ChatGPT-User/1.0; +https://openai.com/bot",
+      "sources": [{ "url": "https://developers.openai.com/api/docs/bots", "says": "Visits a page when a user asks ChatGPT or a custom GPT; it does not crawl automatically, and robots.txt rules may not apply." }]
+    },
+    {
+      "token": "GPTBot",
+      "operator": "OpenAI",
+      "product": "OpenAI's model training",
+      "role": "training",
+      "honorsRobotsTxt": true,
+      "whenBlocked": "OpenAI does not train its models on the site's pages. ChatGPT search can still show and cite the site (that is OAI-SearchBot, set independently).",
+      "strategy": { "cited-not-trained": "block" },
+      "userAgent": "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko); compatible; GPTBot/1.4; +https://openai.com/gptbot",
+      "sources": [{ "url": "https://developers.openai.com/api/docs/bots", "says": "Collects content that may be used to train OpenAI's foundation models; disallowing it means not to train on that content." }]
+    },
+    {
+      "token": "Claude-SearchBot",
+      "operator": "Anthropic",
+      "product": "Claude's search",
+      "role": "search-index",
+      "honorsRobotsTxt": true,
+      "whenBlocked": "Anthropic stops indexing the site for search: it may show less, and less accurately, in Claude users' search results.",
+      "strategy": { "cited-not-trained": "allow" },
+      "userAgent": null,
+      "sources": [{ "url": "https://support.claude.com/en/articles/8896518-does-anthropic-crawl-data-from-the-web-and-how-can-site-owners-block-the-crawler", "says": "Crawls the web to improve the quality of search results for Claude's users; all of Anthropic's robots honor robots.txt. The page publishes no full user-agent string." }]
+    },
+    {
+      "token": "Claude-User",
+      "operator": "Anthropic",
+      "product": "Claude",
+      "role": "user-fetch",
+      "honorsRobotsTxt": true,
+      "whenBlocked": "Claude stops fetching the site's pages when someone asks it to; Anthropic says this may reduce the site's visibility in searches users direct. Unlike most fetchers of this kind, Anthropic says it follows robots.txt.",
+      "strategy": { "cited-not-trained": "allow" },
+      "userAgent": null,
+      "sources": [{ "url": "https://support.claude.com/en/articles/8896518-does-anthropic-crawl-data-from-the-web-and-how-can-site-owners-block-the-crawler", "says": "Fetches pages when a person asks Claude something, and is controlled by robots.txt." }]
+    },
+    {
+      "token": "ClaudeBot",
+      "operator": "Anthropic",
+      "product": "Anthropic's model training",
+      "role": "training",
+      "honorsRobotsTxt": true,
+      "whenBlocked": "The site's future pages are left out of Anthropic's training data. Claude can still find and cite the site (Claude-SearchBot, Claude-User).",
+      "strategy": { "cited-not-trained": "block" },
+      "userAgent": null,
+      "sources": [{ "url": "https://support.claude.com/en/articles/8896518-does-anthropic-crawl-data-from-the-web-and-how-can-site-owners-block-the-crawler", "says": "Collects content that may contribute to training; blocking it excludes the site's future content; Anthropic's robots honor robots.txt and Crawl-delay." }]
+    },
+    {
+      "token": "PerplexityBot",
+      "operator": "Perplexity",
+      "product": "Perplexity's search",
+      "role": "search-index",
+      "honorsRobotsTxt": true,
+      "whenBlocked": "The site is no longer surfaced or linked in Perplexity's answers. Perplexity says this robot is not used to train foundation models. A change takes up to 24 hours.",
+      "strategy": { "cited-not-trained": "allow" },
+      "userAgent": "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; PerplexityBot/1.0; +https://perplexity.ai/perplexitybot)",
+      "sources": [{ "url": "https://docs.perplexity.ai/docs/resources/perplexity-crawlers", "says": "Surfaces and links websites in Perplexity's search results; managed with robots.txt; not used for training foundation models." }]
+    },
+    {
+      "token": "Perplexity-User",
+      "operator": "Perplexity",
+      "product": "Perplexity",
+      "role": "user-fetch",
+      "honorsRobotsTxt": "user-initiated",
+      "whenBlocked": "Perplexity says it generally ignores robots.txt for these fetches, since a user asked: blocking it may change little.",
+      "strategy": { "cited-not-trained": "allow" },
+      "userAgent": "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Perplexity-User/1.0; +https://perplexity.ai/perplexity-user)",
+      "sources": [{ "url": "https://docs.perplexity.ai/docs/resources/perplexity-crawlers", "says": "Visits a page when a user asks a question, to answer it and link the page; it generally ignores robots.txt, and is not used for crawling or training." }]
+    },
+    {
+      "token": "Google-Extended",
+      "operator": "Google",
+      "product": "Gemini's training, and the grounding of the Gemini app and Vertex AI",
+      "role": "opt-out-token",
+      "honorsRobotsTxt": true,
+      "whenBlocked": "Google stops using the site's pages to train its Gemini models AND to ground the answers of the Gemini app and of Vertex AI's grounding with Google Search: the site can no longer be cited there. It has NO effect on Google Search: not on ranking, not on AI Overviews nor AI Mode (those are set in Search Console, and by the snippet rules).",
+      "strategy": { "cited-not-trained": "ask" },
+      "userAgent": null,
+      "sources": [
+        { "url": "https://developers.google.com/crawling/docs/crawlers-fetchers/google-common-crawlers", "says": "A product token, with no user agent of its own, that controls whether what Google crawls may train future Gemini models and ground Gemini; it does not affect inclusion nor ranking in Google Search." },
+        { "url": "https://developers.google.com/search/docs/appearance/ai-features", "says": "Limiting AI training and grounding in some of Google's other systems goes through Google-Extended." }
+      ]
+    },
+    {
+      "token": "Google-Agent",
+      "operator": "Google",
+      "product": "Agents running on Google's infrastructure",
+      "role": "user-fetch",
+      "honorsRobotsTxt": "user-initiated",
+      "whenBlocked": "Agents acting for a user on Google's infrastructure may not reach the site; Google says these fetches generally ignore robots.txt, since a user asked.",
+      "strategy": { "cited-not-trained": "allow" },
+      "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko; compatible; Google-Agent; +https://developers.google.com/crawling/docs/crawlers-fetchers/google-agent) Chrome/W.X.Y.Z Safari/537.36",
+      "sources": [{ "url": "https://developers.google.com/crawling/docs/crawlers-fetchers/google-user-triggered-fetchers", "says": "Used by agents hosted on Google's infrastructure to navigate the web and act on a user's request; user-triggered fetchers generally ignore robots.txt." }]
+    },
+    {
+      "token": "Google-GeminiNotebook",
+      "operator": "Google",
+      "product": "Gemini Notebook",
+      "role": "user-fetch",
+      "honorsRobotsTxt": "user-initiated",
+      "whenBlocked": "Gemini Notebook may not fetch the page when a user adds it as a source; Google says such fetches generally ignore robots.txt.",
+      "strategy": { "cited-not-trained": "allow" },
+      "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 (compatible; Google-GeminiNotebook; +https://developers.google.com/crawling/docs/crawlers-fetchers/google-gemininotebook)",
+      "sources": [{ "url": "https://developers.google.com/crawling/docs/crawlers-fetchers/google-user-triggered-fetchers", "says": "Requests the individual addresses that Gemini Notebook users give as sources for their projects." }]
+    },
+    {
+      "token": "Applebot-Extended",
+      "operator": "Apple",
+      "product": "Apple's foundation models",
+      "role": "opt-out-token",
+      "honorsRobotsTxt": true,
+      "whenBlocked": "Apple stops using what its search robot collected to train its foundation models. No effect on Apple's search (Spotlight, Siri, Safari) nor on its ranking.",
+      "strategy": { "cited-not-trained": "block" },
+      "userAgent": null,
+      "sources": [{ "url": "https://support.apple.com/en-us/119829", "says": "Does not crawl itself; it only decides whether data collected by Apple's search robot may train Apple's foundation models; it does not remove pages from search." }]
+    },
+    {
+      "token": "Meta-WebIndexer",
+      "operator": "Meta",
+      "product": "Meta AI's search",
+      "role": "search-index",
+      "honorsRobotsTxt": true,
+      "whenBlocked": "Meta AI's search may no longer cite and link the site; Meta says allowing it helps Meta cite the content in Meta AI's answers.",
+      "strategy": { "cited-not-trained": "allow" },
+      "userAgent": "meta-webindexer/1.1 (+/documentation/sharing/webmasters/web-crawlers)",
+      "sources": [{ "url": "https://developers.facebook.com/documentation/sharing/webmasters/web-crawlers.md", "says": "Crawls to improve the quality of Meta AI's search results; a robots.txt Disallow blocks it (cached up to 24 hours)." }]
+    },
+    {
+      "token": "Meta-ExternalFetcher",
+      "operator": "Meta",
+      "product": "Meta AI",
+      "role": "user-fetch",
+      "honorsRobotsTxt": "user-initiated",
+      "whenBlocked": "Meta says this fetcher may bypass robots.txt for the links users ask for, AI agents' tasks included: blocking it may change little.",
+      "strategy": { "cited-not-trained": "allow" },
+      "userAgent": "meta-externalfetcher/1.1 (+/documentation/sharing/webmasters/web-crawlers)",
+      "sources": [{ "url": "https://developers.facebook.com/documentation/sharing/webmasters/web-crawlers.md", "says": "Fetches individual links at a user's request, including for AI agents completing tasks; it may bypass robots.txt." }]
+    },
+    {
+      "token": "Meta-ExternalAgent",
+      "operator": "Meta",
+      "product": "Meta's model training and products",
+      "role": "training",
+      "honorsRobotsTxt": true,
+      "whenBlocked": "Meta stops using the site's pages to train its AI models or to improve its products by indexing them directly. Meta AI can still cite the site (Meta-WebIndexer).",
+      "strategy": { "cited-not-trained": "block" },
+      "userAgent": "meta-externalagent/1.1 (+/documentation/sharing/webmasters/web-crawlers)",
+      "sources": [{ "url": "https://developers.facebook.com/documentation/sharing/webmasters/web-crawlers.md", "says": "Crawls for uses such as training foundation AI models or improving products by indexing content directly; blocked by a robots.txt Disallow." }]
+    },
+    {
+      "token": "Amzn-SearchBot",
+      "operator": "Amazon",
+      "product": "Alexa and Amazon's search experiences",
+      "role": "search-index",
+      "honorsRobotsTxt": true,
+      "whenBlocked": "The site is no longer eligible for Amazon's search experiences, Alexa among them. Amazon says it is not used for training. If robots.txt does not name it but lets other search robots in, it follows their rules.",
+      "strategy": { "cited-not-trained": "allow" },
+      "userAgent": "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Amzn-SearchBot/0.1) Chrome/W.X.Y.Z Safari/537.36",
+      "sources": [{ "url": "https://developer.amazon.com/amazonbot", "says": "Improves search experiences in Amazon's products such as Alexa; not used for training; each Amazon setting is independent." }]
+    },
+    {
+      "token": "Amzn-User",
+      "operator": "Amazon",
+      "product": "Alexa",
+      "role": "user-fetch",
+      "honorsRobotsTxt": "user-initiated",
+      "whenBlocked": "Live fetches for a user's request (an Alexa question) may not reach the site, although Amazon says they may not follow every robots.txt rule.",
+      "strategy": { "cited-not-trained": "allow" },
+      "userAgent": "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Amzn-User/0.1) Chrome/W.X.Y.Z Safari/537.36",
+      "sources": [{ "url": "https://developer.amazon.com/amazonbot", "says": "Fetches live information for user actions such as Alexa questions; may not follow every robots.txt directive; not used for training." }]
+    },
+    {
+      "token": "Amazonbot",
+      "operator": "Amazon",
+      "product": "Amazon's model training and products",
+      "role": "training",
+      "honorsRobotsTxt": true,
+      "whenBlocked": "Amazon stops using the site's pages to train its AI models and improve its products. Alexa and Amazon's search can still use the site (Amzn-SearchBot).",
+      "strategy": { "cited-not-trained": "block" },
+      "userAgent": "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Amazonbot/0.1) Chrome/W.X.Y.Z Safari/537.36",
+      "sources": [{ "url": "https://developer.amazon.com/amazonbot", "says": "May be used to train Amazon's AI models and improve its products; respects robots.txt; a noarchive meta tag also means no model training." }]
+    },
+    {
+      "token": "DuckAssistBot",
+      "operator": "DuckDuckGo",
+      "product": "DuckDuckGo's AI-assisted answers",
+      "role": "user-fetch",
+      "honorsRobotsTxt": true,
+      "whenBlocked": "Within 72 hours, the site is no longer a possible source of DuckDuckGo's AI-assisted answers. No effect on its place in DuckDuckGo's results. DuckDuckGo says it is not used for training.",
+      "strategy": { "cited-not-trained": "allow" },
+      "userAgent": "DuckAssistBot/1.2; (+http://duckduckgo.com/duckassistbot.html)",
+      "sources": [{ "url": "https://duckduckgo.com/duckduckgo-help-pages/results/duckassistbot", "says": "Crawls pages in real time for DuckDuckGo's AI-assisted answers, which cite their sources; respects robots.txt; not used to train models." }]
+    },
+    {
+      "token": "MistralAI-Index",
+      "operator": "Mistral AI",
+      "product": "Mistral's search index",
+      "role": "search-index",
+      "honorsRobotsTxt": true,
+      "whenBlocked": "Mistral's search index, which its assistant answers from, leaves the site out. Mistral says it is never used for training.",
+      "strategy": { "cited-not-trained": "allow" },
+      "userAgent": "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; MistralAI-Index/1.0; +https://docs.mistral.ai/robots)",
+      "sources": [{ "url": "https://docs.mistral.ai/robots", "says": "Crawls automatically to build Mistral's search index, never for training; controlled with robots.txt." }]
+    },
+    {
+      "token": "MistralAI-User",
+      "operator": "Mistral AI",
+      "product": "Mistral's assistant",
+      "role": "user-fetch",
+      "honorsRobotsTxt": true,
+      "whenBlocked": "Mistral's assistant no longer fetches the site's pages when someone asks it to.",
+      "strategy": { "cited-not-trained": "allow" },
+      "userAgent": "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; MistralAI-User/1.0; +https://docs.mistral.ai/robots)",
+      "sources": [{ "url": "https://docs.mistral.ai/robots", "says": "The token decides which sites user requests may reach; it does not crawl automatically and is not used for training." }]
+    },
+    {
+      "token": "MistralAI-Training",
+      "operator": "Mistral AI",
+      "product": "Mistral's model training",
+      "role": "training",
+      "honorsRobotsTxt": true,
+      "whenBlocked": "Mistral leaves the site out of its training datasets. No effect on its search nor on its answers.",
+      "strategy": { "cited-not-trained": "block" },
+      "userAgent": "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; MistralAI-Training/1.0; +https://docs.mistral.ai/robots)",
+      "sources": [{ "url": "https://docs.mistral.ai/robots", "says": "Builds Mistral's training datasets; can be disallowed in robots.txt." }]
+    },
+    {
+      "token": "YouBot",
+      "operator": "You.com",
+      "product": "You.com's search",
+      "role": "search-index",
+      "honorsRobotsTxt": true,
+      "whenBlocked": "The site leaves the You.com search engine and its answers.",
+      "strategy": { "cited-not-trained": "allow" },
+      "userAgent": "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; YouBot/1.0; +https://docs.you.com/youbot; env:prod) Chrome/X.X.X.X Safari/537.36",
+      "sources": [{ "url": "https://you.com/docs/youbot", "says": "Powers the You.com search engine; respects robots.txt and crawl-delay." }]
+    },
+    {
+      "token": "CCBot",
+      "operator": "Common Crawl",
+      "product": "Common Crawl's open web archive",
+      "role": "training",
+      "honorsRobotsTxt": true,
+      "whenBlocked": "The site leaves Common Crawl's open archive, which anyone may reuse, model training included.",
+      "strategy": { "cited-not-trained": "block" },
+      "userAgent": "CCBot/2.0 (https://commoncrawl.org/faq/)",
+      "sources": [
+        { "url": "https://commoncrawl.org/ccbot", "says": "Builds an open repository of web crawl data that anyone can use; opt out with a robots.txt Disallow for CCBot." },
+        { "url": "https://commoncrawl.org/faq", "says": "Reads robots.txt before fetching, obeys Crawl-delay, and does not run JavaScript." }
+      ]
+    }
+  ],
+  "retired": [
+    {
+      "token": "anthropic-ai",
+      "operator": "Anthropic",
+      "replacedBy": ["ClaudeBot", "Claude-SearchBot", "Claude-User"],
+      "sources": [{ "url": "https://support.claude.com/en/articles/8896518-does-anthropic-crawl-data-from-the-web-and-how-can-site-owners-block-the-crawler", "says": "Anthropic's page names only ClaudeBot, Claude-SearchBot and Claude-User; this older name is absent from it, as from its July 2024 version." }]
+    },
+    {
+      "token": "Claude-Web",
+      "operator": "Anthropic",
+      "replacedBy": ["ClaudeBot", "Claude-SearchBot", "Claude-User"],
+      "sources": [{ "url": "https://support.claude.com/en/articles/8896518-does-anthropic-crawl-data-from-the-web-and-how-can-site-owners-block-the-crawler", "says": "Absent from Anthropic's page, as from its July 2024 version." }]
+    },
+    {
+      "token": "Google-NotebookLM",
+      "operator": "Google",
+      "replacedBy": ["Google-GeminiNotebook"],
+      "sources": [{ "url": "https://developers.google.com/crawling/docs/crawlers-fetchers/google-user-triggered-fetchers", "says": "A former agent, supported until August 2026." }]
+    },
+    {
+      "token": "FacebookBot",
+      "operator": "Meta",
+      "replacedBy": [],
+      "sources": [{ "url": "https://developers.facebook.com/documentation/sharing/webmasters/web-crawlers.md", "says": "No longer on Meta's list of crawlers, without a notice." }]
+    }
+  ]
+}
