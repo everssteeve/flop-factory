@@ -9,8 +9,12 @@
 export const PLUGIN_NAME = "flop-factory-harness";
 
 export const RUN_TOOLS = "Bash,Read,Edit,Write,Glob,Grep";
+/** Atelier Découverte : recherche web, sans shell ni récupération de pages. */
+export const DISCOVERY_TOOLS = "WebSearch,Read,Write";
+const ALLOWED_TOOLSETS = new Set([RUN_TOOLS, DISCOVERY_TOOLS]);
 
-export function claudeArgs({ prompt, model, capUsd, maxTurns, pluginDir, rulesFile, settingsFile }) {
+export function claudeArgs({ prompt, model, capUsd, maxTurns, pluginDir, rulesFile, settingsFile, tools = RUN_TOOLS }) {
+  if (!ALLOWED_TOOLSETS.has(tools)) throw new Error(`jeu d'outils non prévu : ${tools}`);
   if (!(capUsd > 0)) throw new Error("un run doit avoir un plafond de dépense positif");
   if (!(maxTurns > 0)) throw new Error("un run doit avoir un nombre de tours maximum");
   if (!settingsFile) throw new Error("un run doit avoir ses réglages de sandbox");
@@ -28,11 +32,11 @@ export function claudeArgs({ prompt, model, capUsd, maxTurns, pluginDir, rulesFi
     "--max-turns",
     String(maxTurns),
     "--tools",
-    RUN_TOOLS,
+    tools,
     "--permission-prompts",
     "none",
     "--allowedTools",
-    RUN_TOOLS,
+    tools,
     "--settings",
     settingsFile,
     "--plugin-dir",

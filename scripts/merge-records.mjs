@@ -9,6 +9,7 @@ import { readFileSync, readdirSync, existsSync, statSync, cpSync, writeFileSync,
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadConfig, readLedger } from "./lib/budget.mjs";
+import { loadIdeas, checkDiscovered } from "./lib/apps.mjs";
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 const RUN_ID = /^[a-z]+-[0-9TZ-]+-[0-9a-f]{8}$/;
@@ -33,6 +34,28 @@ export function validateLedger(config, base, incoming) {
     if (!["ok", "failed"].includes(e.status)) throw new Error(`statut invalide : ${e.status}`);
   }
   return { day: base.day, entries: incoming.entries };
+}
+
+/**
+ * Idées découvertes venues du job agent : elles doivent prolonger le fichier
+ * du dépôt, et chaque nouvelle idée repasse les filtres de l'usine.
+ */
+export function validateDiscovered(root, incoming, maxDiscovered) {
+  const p = join(root, "factory", "ideas-discovered.json");
+  const base = existsSync(p) ? JSON.parse(readFileSync(p, "utf8")).ideas : [];
+  if (!Array.isArray(incoming?.ideas)) throw new Error("idées découvertes illisibles");
+  if (incoming.ideas.length < base.length || incoming.ideas.length > maxDiscovered) throw new Error("idées découvertes : longueur inattendue");
+  base.forEach((e, i) => {
+    if (JSON.stringify(e) !== JSON.stringify(incoming.ideas[i])) throw new Error(`idée découverte ${i} réécrite`);
+  });
+  const blocklist = JSON.parse(readFileSync(join(root, "factory", "blocklist.json"), "utf8"));
+  const known = new Set(loadIdeas(root).map((i) => i.slug));
+  for (const c of incoming.ideas.slice(base.length)) {
+    const problems = checkDiscovered(c, known, blocklist);
+    if (problems.length) throw new Error(`idée découverte refusée (${c?.slug}) : ${problems.join(", ")}`);
+    known.add(c.slug);
+  }
+  return { ideas: incoming.ideas };
 }
 
 export function mergeRecords(root, records) {
@@ -70,6 +93,18 @@ export function mergeRecords(root, records) {
       } else {
         throw new Error(`entrée inattendue dans les journaux : ${entry}`);
       }
+    }
+  }
+  // Idées découvertes en dernier, et jamais bloquantes : un fichier refusé est
+  // ignoré (avec un avertissement), le ledger et les journaux passent quand même.
+  const ip = join(records, "factory", "ideas-discovered.json");
+  if (existsSync(ip)) {
+    try {
+      const next = validateDiscovered(root, JSON.parse(readFileSync(ip, "utf8")), config.discovery.maxDiscovered);
+      writeFileSync(join(root, "factory", "ideas-discovered.json"), JSON.stringify(next, null, 2) + "\n");
+      merged.push("ideas-discovered.json");
+    } catch (e) {
+      console.warn(`::warning::idées découvertes ignorées : ${e.message}`);
     }
   }
   return merged;

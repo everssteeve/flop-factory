@@ -66,24 +66,28 @@ test("échappement des textes de spec", () => {
   assert.equal(escapeHtml(`<img src=x onerror="a">'&`), "&lt;img src=x onerror=&quot;a&quot;&gt;&#39;&amp;");
 });
 
-function tempRoot() {
+function tempRoot({ minBacklog = 0 } = {}) {
   const root = mkdtempSync(join(tmpdir(), "ff-pipe-"));
-  for (const p of ["factory/config.json", "factory/ideas.json", "factory/prompts/spec.md", "factory/prompts/build.md", "factory/prompts/review.md"]) {
+  for (const p of ["factory/config.json", "factory/ideas.json", "factory/blocklist.json", "factory/prompts/spec.md", "factory/prompts/build.md", "factory/prompts/review.md", "factory/prompts/discovery.md"]) {
     mkdirSync(join(root, p, ".."), { recursive: true });
     cpSync(join(repo, p), join(root, p));
   }
   writeFileSync(join(root, "factory", "ideas.json"), JSON.stringify({ ideas: [IDEA] }));
+  const cfg = JSON.parse(readFileSync(join(root, "factory", "config.json"), "utf8"));
+  cfg.discovery.minBacklog = minBacklog;
+  writeFileSync(join(root, "factory", "config.json"), JSON.stringify(cfg));
   return root;
 }
 
 /** Faux ateliers : chaque étape écrit ce qu'un agent écrirait. */
-function fakeAteliers({ spec = SPEC, review = { score: 8, blocking: [] }, fail = {}, extraFile } = {}) {
+function fakeAteliers({ spec = SPEC, review = { score: 8, blocking: [] }, fail = {}, extraFile, discovered } = {}) {
   const calls = [];
   const run = (opts) => {
     calls.push(opts);
-    const kind = opts.prompt.includes("spec-") ? "spec" : opts.prompt.includes("build-") ? "build" : "review";
+    const kind = opts.profile === "discovery" ? "discovery" : opts.prompt.includes("spec-") ? "spec" : opts.prompt.includes("build-") ? "build" : "review";
     mkdirSync(opts.workdir, { recursive: true });
     if (fail[kind]) return { status: fail[kind], runId: `${kind}-1` };
+    if (kind === "discovery") writeFileSync(join(opts.workdir, "ideas.json"), JSON.stringify(discovered ?? { ideas: [] }));
     if (kind === "spec") writeFileSync(join(opts.workdir, "spec.json"), JSON.stringify(spec));
     if (kind === "build") {
       for (const f of ["index.html", "style.css", "app.js", "test.mjs"]) cpSync(join(FIXTURE, f), join(opts.workdir, f));
@@ -179,6 +183,55 @@ test("retry : les motifs du dernier refus sont donnés au build suivant", () => 
   const fake = fakeAteliers();
   runPipeline({ root, stateDir: root, work: mkdtempSync(join(tmpdir(), "ff-work-")) }, { runAtelier: fake.run });
   assert.match(readFileSync(join(root, fake.calls[1].prompt), "utf8"), /critère AC-2 non vérifié/);
+});
+
+const GOOD_FIND = { slug: "minuteur-oeufs", idea: "Choisir la cuisson d'un oeuf (coque, mollet, dur) et lancer le minuteur correspondant.", evidence: "Question récurrente sur les forums de cuisine." };
+
+test("découverte : lancée quand le stock baisse, idées filtrées puis enregistrées", () => {
+  const root = tempRoot({ minBacklog: 2 });
+  const records = mkdtempSync(join(tmpdir(), "ff-rec-"));
+  const bad = [
+    { ...GOOD_FIND, slug: "tirage-equipes" },
+    { slug: "suivi-grossesse", idea: "Suivre les semaines de grossesse et les rendez-vous associés, au jour le jour.", evidence: "Forums de parents." },
+    { ...GOOD_FIND, slug: "lien", idea: "Une idée avec un lien https://exemple.fr pour aller plus loin dans la page." },
+    { ...GOOD_FIND, slug: "extra", admin: true },
+  ];
+  const fake = fakeAteliers({ discovered: { ideas: [GOOD_FIND, ...bad] } });
+  runPipeline({ root, stateDir: root, work: mkdtempSync(join(tmpdir(), "ff-work-")), records }, { runAtelier: fake.run });
+  assert.equal(fake.calls[0].atelier, "decouverte");
+  assert.equal(fake.calls[0].profile, "discovery");
+  assert.match(readFileSync(join(root, fake.calls[0].prompt), "utf8"), /tirage-equipes/);
+  const saved = JSON.parse(readFileSync(join(records, "factory", "ideas-discovered.json"), "utf8"));
+  assert.deepEqual(saved.ideas.map((i) => i.slug), ["minuteur-oeufs"]);
+  assert.deepEqual(loadIdeas(root).map((i) => i.slug), ["tirage-equipes", "minuteur-oeufs"]);
+});
+
+test("découverte : une idée trouvée aujourd'hui n'est construite qu'au passage suivant, stock plafonné", () => {
+  const root = tempRoot({ minBacklog: 2 });
+  mkdirSync(join(root, "factory", "apps"), { recursive: true });
+  writeFileSync(join(root, "factory", "apps", "tirage-equipes.json"), JSON.stringify({ slug: "tirage-equipes", status: "live", attempts: 1 }));
+  const fake = fakeAteliers({ discovered: { ideas: [GOOD_FIND] } });
+  const out = runPipeline({ root, stateDir: root, work: mkdtempSync(join(tmpdir(), "ff-work-")) }, { runAtelier: fake.run });
+  assert.equal(out.stage, "none");
+  assert.equal(fake.calls.length, 1);
+  // Stock presque plein : on n'ajoute que ce qui tient.
+  const cfg = JSON.parse(readFileSync(join(root, "factory", "config.json"), "utf8"));
+  cfg.discovery.maxDiscovered = 2;
+  writeFileSync(join(root, "factory", "config.json"), JSON.stringify(cfg));
+  const two = { ...GOOD_FIND, slug: "minuteur-thes", idea: "Choisir un type de thé et lancer le minuteur d'infusion conseillé pour ce thé." };
+  const three = { ...GOOD_FIND, slug: "minuteur-pates", idea: "Choisir une forme de pâtes et lancer le minuteur de cuisson conseillé pour elle." };
+  runPipeline({ root, stateDir: root, work: mkdtempSync(join(tmpdir(), "ff-work-")) }, { runAtelier: fakeAteliers({ discovered: { ideas: [two, three] } }).run });
+  assert.equal(JSON.parse(readFileSync(join(root, "factory", "ideas-discovered.json"), "utf8")).ideas.length, 2);
+});
+
+test("découverte : inutile si le stock suffit, sans effet si elle échoue", () => {
+  const root = tempRoot({ minBacklog: 1 });
+  const fake = fakeAteliers();
+  runPipeline({ root, stateDir: root, work: mkdtempSync(join(tmpdir(), "ff-work-")) }, { runAtelier: fake.run });
+  assert.ok(!fake.calls.some((c) => c.atelier === "decouverte"));
+  const root2 = tempRoot({ minBacklog: 5 });
+  const out = runPipeline({ root: root2, stateDir: root2, work: mkdtempSync(join(tmpdir(), "ff-work-")) }, { runAtelier: fakeAteliers({ fail: { discovery: "failed" } }).run });
+  assert.equal(out.stage, "done", "la chaîne continue avec les idées existantes");
 });
 
 test("chaîne : plus rien à construire", () => {
