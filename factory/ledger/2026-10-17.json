@@ -336,6 +336,22 @@
       "usd": 0.0047564700000000005,
       "status": "ok",
       "at": "2026-10-17T17:08:50.857Z"
+    },
+    {
+      "runId": "qualite-2026-10-17T17-15-05-876Z-f79a7c89",
+      "atelier": "qualite",
+      "model": "haiku",
+      "usd": 0.000542225,
+      "status": "ok",
+      "at": "2026-10-17T17:15:05.876Z"
+    },
+    {
+      "runId": "decouverte-2026-10-17T17-15-10-215Z-01117a20",
+      "atelier": "decouverte",
+      "model": "haiku",
+      "usd": 0.000785275,
+      "status": "failed",
+      "at": "2026-10-17T17:15:10.215Z"
     }
   ]
 }
