@@ -352,6 +352,22 @@
       "usd": 0.000785275,
       "status": "failed",
       "at": "2026-10-17T17:15:10.215Z"
+    },
+    {
+      "runId": "qualite-2026-10-17T17-22-00-239Z-f73d6361",
+      "atelier": "qualite",
+      "model": "haiku",
+      "usd": 0.00047934999999999997,
+      "status": "ok",
+      "at": "2026-10-17T17:22:00.239Z"
+    },
+    {
+      "runId": "decouverte-2026-10-17T17-22-03-689Z-85fbe516",
+      "atelier": "decouverte",
+      "model": "sonnet",
+      "usd": 0.10540690000000001,
+      "status": "ok",
+      "at": "2026-10-17T17:22:03.689Z"
     }
   ]
 }

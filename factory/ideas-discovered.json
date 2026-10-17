@@ -1,0 +1,14 @@
+{
+  "ideas": [
+    {
+      "slug": "compteur-scores-jeux",
+      "idea": "Tableau de scores pour soirées jeux de société et de cartes : ajouter des joueurs, saisir les points manche par manche, voir totaux et classement, avec option du score le plus bas gagnant. Conservé dans le navigateur.",
+      "evidence": "De nombreuses applis de compteur de points existent sur mobile, signe d'un besoin récurrent, mais peu d'outils web simples sans compte."
+    },
+    {
+      "slug": "calcul-allure-course",
+      "idea": "Pour les coureurs amateurs : convertir un chrono visé et une distance en allure min/km et vitesse km/h, et afficher un tableau de temps de passage tous les 1, 2 ou 5 km, avec option de départ plus lent.",
+      "evidence": "Des sites de course à pied proposent des calculateurs d'allure et de temps de passage très consultés pour préparer 10 km, semi et marathon."
+    }
+  ]
+}
