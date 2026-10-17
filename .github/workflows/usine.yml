@@ -351,6 +351,7 @@ jobs:
       # Cerveau : évaluation de la version en cours (retrait si les résultats baissent),
       # puis adoption éventuelle de la proposition du jour.
       - name: Cerveau — évaluation et adoption
+        id: brainrec
         if: always() && steps.ledger.outcome == 'success'
         continue-on-error: true
         env:
@@ -377,7 +378,7 @@ jobs:
 
       # Toute adoption ou tout retrait de version devient une issue : relecture humaine possible après coup.
       - name: Signaler l'événement du cerveau
-        if: always() && hashFiles(format('{0}/brain-event.md', runner.temp)) != ''
+        if: always() && steps.brainrec.outputs.event == 'yes'
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}

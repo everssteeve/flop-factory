@@ -184,7 +184,10 @@ if (isMain) {
     });
     console.log(JSON.stringify({ evaluation: out.evaluation, adoption: out.adoption?.decision ?? null }));
     const text = eventText(out);
-    if (text && arg(argv, "event")) writeFileSync(resolve(arg(argv, "event")), text + "\n");
+    if (text && arg(argv, "event")) {
+      writeFileSync(resolve(arg(argv, "event")), text + "\n");
+      if (process.env.GITHUB_OUTPUT) writeFileSync(process.env.GITHUB_OUTPUT, "event=yes\n", { flag: "a" });
+    }
   } catch (e) {
     console.log(`::warning::cerveau (records) : ${e.message}`);
   }
