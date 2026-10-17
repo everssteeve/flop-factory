@@ -13,6 +13,8 @@ Fichiers à produire dans le dossier courant, sans framework ni dépendance, san
 
 L'usine publie la page sous une politique de sécurité stricte (`script-src 'self'; style-src 'self'; connect-src 'none'`). Donc : aucun `<script>` ni `<style>` en ligne, aucun attribut `style="…"` ni `onclick="…"` (y compris dans du HTML généré par `innerHTML`), aucun `fetch`, WebSocket ou beacon. Utilise des classes CSS et `addEventListener`. Une violation est une erreur de console, et la porte refuse l'app.
 
+Pour un critère qui passe par la page (message d'erreur affiché, état restauré au rechargement, liste rendue), écris une fonction exportée qui fait tout le travail sauf toucher au DOM : par exemple `validate(saisie) → message`, `restore(storage) → état`, `renderItems(état) → [{ label, checked }]`. Le branchement à la page ne fait qu'appeler ces fonctions et afficher leur résultat, sans logique propre. `test.mjs` les appelle avec de vraies valeurs et un faux stockage (`{ getItem, setItem }` sur un objet). Chercher une chaîne dans le source n'est jamais un test.
+
 Pour que `app.js` s'importe sous Node, ne touche au DOM que si `typeof document !== "undefined"`.
 
 Lance `node test.mjs`. Corrige jusqu'à ce que toutes les lignes `ok AC-n` s'affichent et que le code de sortie soit 0. Ne modifie pas `spec.json`.
