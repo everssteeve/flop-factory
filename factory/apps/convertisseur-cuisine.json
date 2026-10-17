@@ -1,0 +1,15 @@
+{
+  "slug": "convertisseur-cuisine",
+  "status": "building",
+  "attempts": 1,
+  "liveSince": null,
+  "history": [
+    {
+      "at": "2026-10-17T13:34:51.410Z",
+      "decision": "retry",
+      "reasons": [
+        "porte : API réseau interdite dans test.mjs"
+      ]
+    }
+  ]
+}

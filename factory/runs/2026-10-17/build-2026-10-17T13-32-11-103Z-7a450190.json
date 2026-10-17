@@ -1,0 +1,32 @@
+{
+  "runId": "build-2026-10-17T13-32-11-103Z-7a450190",
+  "atelier": "build",
+  "prompt": "dist/prompts/build-convertisseur-cuisine.md",
+  "model": "haiku",
+  "capUsd": 1.2286,
+  "remainingBeforeUsd": 2.4573,
+  "usd": 0.014219570000000003,
+  "status": "ok",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 6,
+  "permissionDenials": [],
+  "report": {
+    "status": "ok",
+    "summary": "App convertisseur-cuisine construite sans dépendance : index.html (titre, viewport, style.css, app.js en module, aucune ressource externe), style.css (police système, cibles de 44 px, contenu contraint à la largeur), app.js (fonctions de calcul exportées sans DOM, branchement conditionné à typeof document) et test.mjs. `node test.mjs` affiche ok AC-1 à ok AC-6 et sort avec le code 0. Choix faits : 1 cuillère à soupe = 15 ml, 1 cuillère à café = 5 ml, 1 tasse = 240 ml, 1 once = 28,35 g ; conversion volume/masse refusée (dépend de l'ingrédient) ; résultats formatés à la française (virgule). Aucun pied de page légal, aucun paquet installé, rien poussé ni déployé.",
+    "blockers": [
+      "Vérification de la mise en page à 375 px et 1280 px, et de la console du navigateur, non faite dans un vrai navigateur (pas d'outil de rendu sans dépendance) : elle repose sur une vérification statique du CSS et sur l'import Node de app.js.",
+      "AC-5 est appliqué à tous les champs : une température négative (ex. -5 °C) est donc refusée, ce qui limite la conversion des températures sous zéro. Choix prudent, à revoir si besoin."
+    ]
+  },
+  "stderrTail": ""
+}

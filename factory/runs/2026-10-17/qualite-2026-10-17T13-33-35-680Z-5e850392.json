@@ -1,0 +1,29 @@
+{
+  "runId": "qualite-2026-10-17T13-33-35-680Z-5e850392",
+  "atelier": "qualite",
+  "prompt": "factory/prompts/review.md",
+  "model": "haiku",
+  "capUsd": 0.4311,
+  "remainingBeforeUsd": 0.8622,
+  "usd": 0.005322805000000001,
+  "status": "ok",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 4,
+  "permissionDenials": [],
+  "report": {
+    "status": "ok",
+    "summary": "Revue de l'app convertisseur-cuisine : les six critères d'acceptation sont implémentés et node test.mjs passe. Score 6/10, publiable en l'état. Pas de blocage. Les tests couvrent surtout la logique pure ; le câblage DOM, le rendu à 360 px et la vérification de AC-6 à l'exécution restent à renforcer (détail dans review.json).",
+    "blockers": []
+  },
+  "stderrTail": ""
+}

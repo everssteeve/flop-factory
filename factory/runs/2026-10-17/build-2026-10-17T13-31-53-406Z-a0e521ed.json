@@ -1,0 +1,29 @@
+{
+  "runId": "build-2026-10-17T13-31-53-406Z-a0e521ed",
+  "atelier": "build",
+  "prompt": "dist/prompts/spec-convertisseur-cuisine.md",
+  "model": "haiku",
+  "capUsd": 1.2299,
+  "remainingBeforeUsd": 2.4598,
+  "usd": 0.0025221,
+  "status": "ok",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 2,
+  "permissionDenials": [],
+  "report": {
+    "status": "ok",
+    "summary": "Spec écrite pour convertisseur-cuisine : conversions d'unités de volume et de masse, températures °C/°F, mise à l'échelle des portions, six critères d'acceptation testables.",
+    "blockers": []
+  },
+  "stderrTail": ""
+}
