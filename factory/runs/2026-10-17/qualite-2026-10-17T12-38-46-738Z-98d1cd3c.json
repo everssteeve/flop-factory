@@ -1,0 +1,29 @@
+{
+  "runId": "qualite-2026-10-17T12-38-46-738Z-98d1cd3c",
+  "atelier": "qualite",
+  "prompt": "factory/prompts/guard-smoke.md",
+  "model": "haiku",
+  "capUsd": 0.4345,
+  "remainingBeforeUsd": 0.869,
+  "usd": 0.000481475,
+  "status": "ok",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 2,
+  "permissionDenials": [],
+  "report": {
+    "status": "ok",
+    "summary": "session de contrôle démarrée",
+    "blockers": []
+  },
+  "stderrTail": ""
+}

@@ -1,0 +1,29 @@
+{
+  "runId": "build-2026-10-17T12-38-51-100Z-2530ef0c",
+  "atelier": "build",
+  "prompt": "factory/prompts/socle-hello.md",
+  "model": "haiku",
+  "capUsd": 1.305,
+  "remainingBeforeUsd": 2.61,
+  "usd": 0.00189332,
+  "status": "ok",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 4,
+  "permissionDenials": [],
+  "report": {
+    "status": "ok",
+    "summary": "Site statique Flop Factory créé : index.html (titre, phrase sur la construction sans intervention humaine, date 17 octobre 2026), style.css (mise en page responsive, police système, sans couleurs par défaut), test.mjs (test Node sans dépendance). `node test.mjs` passe (exit 0). Aucun paquet installé, rien poussé ni déployé. Les fichiers de configuration existants du dossier n'ont pas été modifiés.",
+    "blockers": []
+  },
+  "stderrTail": ""
+}

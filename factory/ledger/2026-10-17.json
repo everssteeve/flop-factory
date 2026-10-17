@@ -8,6 +8,22 @@
       "usd": 0.001000015,
       "status": "failed",
       "at": "2026-10-17T12:31:58.849Z"
+    },
+    {
+      "runId": "qualite-2026-10-17T12-38-46-738Z-98d1cd3c",
+      "atelier": "qualite",
+      "model": "haiku",
+      "usd": 0.000481475,
+      "status": "ok",
+      "at": "2026-10-17T12:38:46.738Z"
+    },
+    {
+      "runId": "build-2026-10-17T12-38-51-100Z-2530ef0c",
+      "atelier": "build",
+      "model": "haiku",
+      "usd": 0.00189332,
+      "status": "ok",
+      "at": "2026-10-17T12:38:51.100Z"
     }
   ]
 }
