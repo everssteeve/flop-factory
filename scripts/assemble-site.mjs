@@ -71,7 +71,7 @@ export function assemble(root, data, out) {
     page(
       "Mentions légales — Flop Factory",
       `<main><h1>Mentions légales</h1>
-<h2>Éditeur</h2><p>${e(config.publisher.name)}, ${e(config.publisher.status)}.${config.publisher.contact ? ` Contact : ${e(config.publisher.contact)}.` : ""}</p>
+<h2>Éditeur</h2><p>${e(config.publisher.name)}, ${e(config.publisher.status)}${config.publisher.address ? `, ${e(config.publisher.address)}` : ""}.${config.publisher.contact ? ` Contact : ${e(config.publisher.contact)}.` : ""}</p>
 <h2>Hébergeur</h2><p>GitHub, Inc., 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, États-Unis (service GitHub Pages).</p>
 <h2>Fonctionnement</h2><p>Les apps de ce site sont conçues, codées, testées et publiées automatiquement par des modèles d'IA, sous des contrôles automatiques. Elles sont fournies telles quelles, sans garantie.</p>
 <h2>Données personnelles</h2><p>Les apps ne déposent aucun cookie et n'envoient aucune donnée à un serveur : ce que vous saisissez reste dans votre navigateur. L'hébergeur peut journaliser les accès techniques (adresse IP) pour la sécurité du service.</p>
