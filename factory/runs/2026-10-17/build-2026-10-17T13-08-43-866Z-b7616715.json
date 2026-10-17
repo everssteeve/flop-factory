@@ -1,0 +1,40 @@
+{
+  "runId": "build-2026-10-17T13-08-43-866Z-b7616715",
+  "atelier": "build",
+  "prompt": "dist/prompts/build-convertisseur-cuisine.md",
+  "model": "haiku",
+  "capUsd": 1.3029,
+  "remainingBeforeUsd": 2.6058,
+  "usd": 0.01281659,
+  "status": "ok",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 9,
+  "permissionDenials": [
+    {
+      "tool_name": "Bash",
+      "tool_use_id": "toolu_01JhinVvB8wqrbDfViWCsUGC",
+      "tool_input": {
+        "command": "pwd; ls -la; node --version; cat package.json 2>/dev/null; ls ..",
+        "description": "Inspect working directory and Node version"
+      }
+    }
+  ],
+  "report": {
+    "status": "ok",
+    "summary": "Convertisseur cuisine construit : index.html, style.css, app.js (fonctions de calcul exportées + branchement DOM protégé par typeof document), test.mjs. `node test.mjs` affiche ok AC-1 à ok AC-8 et sort avec le code 0. Aucun script/style en ligne, aucun attribut style ou on*, aucun fetch/XHR/cookie, aucune ressource externe, pied de page légal non ajouté. Vérification DOM faite par lecture et contrôle de syntaxe seulement (pas de navigateur disponible).",
+    "blockers": [
+      "Le package.json du dossier est vide (0 octet) et fait échouer l'import ESM de app.js sous Node 22 (ERR_INVALID_PACKAGE_CONFIG). Je ne l'ai pas modifié : test.mjs importe le contenu de app.js via une URL data. Si l'usine veut un import direct, il faudra un package.json valide (par ex. {\"type\": \"module\"}) — décision humaine."
+    ]
+  },
+  "stderrTail": ""
+}

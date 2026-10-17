@@ -1,0 +1,15 @@
+{
+  "slug": "convertisseur-cuisine",
+  "status": "building",
+  "attempts": 1,
+  "liveSince": null,
+  "history": [
+    {
+      "at": "2026-10-17T13:10:12.272Z",
+      "decision": "retry",
+      "reasons": [
+        "atelier build : sous-dossier refusé : .claude ; nom de fichier refusé : .env ; nom de fichier refusé : .env.development ; nom de fichier refusé : .env.development.local ; nom de fichier refusé : .env.local ; nom de fichier refusé : .env.production ; nom de fichier refusé : .env.production.local ; no"
+      ]
+    }
+  ]
+}

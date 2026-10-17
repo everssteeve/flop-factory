@@ -1,0 +1,29 @@
+{
+  "runId": "build-2026-10-17T13-08-27-411Z-b8ffb0d5",
+  "atelier": "build",
+  "prompt": "dist/prompts/spec-convertisseur-cuisine.md",
+  "model": "haiku",
+  "capUsd": 1.3041,
+  "remainingBeforeUsd": 2.6081,
+  "usd": 0.002344225,
+  "status": "ok",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 2,
+  "permissionDenials": [],
+  "report": {
+    "status": "ok",
+    "summary": "Spec rédigée pour convertisseur-cuisine : conversions de volumes et masses, températures F/C et mise à l'échelle par nombre de personnes, avec 8 critères d'acceptation vérifiables par code. Hypothèses retenues : tasse métrique de 240 ml, once de poids à 28,35 g, arrondi à l'entier pour les températures, pas de conversion g/ml.",
+    "blockers": []
+  },
+  "stderrTail": ""
+}

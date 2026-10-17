@@ -1,4 +1,6 @@
 {
   "qualite:factory/prompts/guard-smoke.md": 0,
-  "build:factory/prompts/socle-hello.md": 0
+  "build:factory/prompts/socle-hello.md": 0,
+  "build:dist/prompts/spec-convertisseur-cuisine.md": 0,
+  "build:dist/prompts/build-convertisseur-cuisine.md": 0
 }
