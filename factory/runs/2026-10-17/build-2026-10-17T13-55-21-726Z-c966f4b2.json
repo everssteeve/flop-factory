@@ -1,0 +1,29 @@
+{
+  "runId": "build-2026-10-17T13-55-21-726Z-c966f4b2",
+  "atelier": "build",
+  "prompt": "dist/prompts/build-convertisseur-cuisine.md",
+  "model": "sonnet",
+  "capUsd": 1.1927,
+  "remainingBeforeUsd": 2.3854,
+  "usd": 0.10745580000000002,
+  "status": "ok",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 3,
+  "permissionDenials": [],
+  "report": {
+    "status": "ok",
+    "summary": "App construite de zéro ; test.mjs exécute le code réel avec un DOM simulé, sans API réseau. Défilement horizontal non mesurable sous Node : CSS fluide (border-box, wrap, pas de overflow-x masqué), vérifié par inspection.",
+    "blockers": []
+  },
+  "stderrTail": ""
+}

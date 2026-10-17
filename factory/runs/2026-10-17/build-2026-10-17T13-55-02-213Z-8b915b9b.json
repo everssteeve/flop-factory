@@ -1,0 +1,29 @@
+{
+  "runId": "build-2026-10-17T13-55-02-213Z-8b915b9b",
+  "atelier": "build",
+  "prompt": "dist/prompts/spec-convertisseur-cuisine.md",
+  "model": "sonnet",
+  "capUsd": 1.2135,
+  "remainingBeforeUsd": 2.4269,
+  "usd": 0.041559200000000004,
+  "status": "ok",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 2,
+  "permissionDenials": [],
+  "report": {
+    "status": "ok",
+    "summary": "spec.json écrit : 8 critères, sujet non interdit.",
+    "blockers": []
+  },
+  "stderrTail": ""
+}

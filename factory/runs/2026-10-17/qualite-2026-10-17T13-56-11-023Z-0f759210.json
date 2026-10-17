@@ -1,0 +1,29 @@
+{
+  "runId": "qualite-2026-10-17T13-56-11-023Z-0f759210",
+  "atelier": "qualite",
+  "prompt": "factory/prompts/review.md",
+  "model": "haiku",
+  "capUsd": 0.4262,
+  "remainingBeforeUsd": 0.8524,
+  "usd": 0.004378095,
+  "status": "ok",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 4,
+  "permissionDenials": [],
+  "report": {
+    "status": "ok",
+    "summary": "Revue Atelier Qualité du convertisseur de cuisine : AC-1 à AC-8 implémentés et testés de façon réelle, node test.mjs passe, aucun défaut bloquant. Score 8/10. Remarques non bloquantes dans review.json (test AC-8 simulé, ingrédients sans quantité non mis à l'échelle, débordement 375 px à confirmer par le navigateur).",
+    "blockers": []
+  },
+  "stderrTail": ""
+}

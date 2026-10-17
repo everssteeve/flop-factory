@@ -1,8 +1,8 @@
 {
   "slug": "convertisseur-cuisine",
-  "status": "building",
-  "attempts": 2,
-  "liveSince": null,
+  "status": "live",
+  "attempts": 3,
+  "liveSince": "2026-10-17T13:57:29.241Z",
   "history": [
     {
       "at": "2026-10-17T13:34:51.410Z",
@@ -18,6 +18,80 @@
         "revue : AC-7 non entièrement vérifié : test.mjs contrôle seulement la balise meta viewport (width=device-width). Le critère exige aussi « il n'y a pas de défilement horizontal » à 360 px, et ce point n'est ni testé ni démontré. Le test l'admet en commentaire. Le CSS masque le débordement (overflow-x",
         "revue : score 5 < 6"
       ]
+    },
+    {
+      "at": "2026-10-17T13:57:29.241Z",
+      "decision": "go",
+      "reasons": []
     }
-  ]
+  ],
+  "spec": {
+    "slug": "convertisseur-cuisine",
+    "name": "Convertisseur de cuisine",
+    "pitch": "Convertit tasses, cuillères, onces, grammes, ml et °F/°C, et ajuste une recette au nombre de personnes.",
+    "problem": "Les recettes étrangères utilisent des unités inhabituelles (tasses, onces, °F) et il faut recalculer les quantités quand le nombre de convives change.",
+    "audience": "Cuisiniers amateurs francophones qui suivent des recettes en unités américaines ou qui cuisinent pour plus ou moins de personnes.",
+    "features": [
+      "Convertir une valeur entre tasse (240 ml), cuillère à soupe (15 ml), cuillère à café (5 ml) et ml, et entre once (28,35 g) et g.",
+      "Convertir une température entre °C et °F.",
+      "Ajuster une liste d'ingrédients (quantité et unité) de N à M personnes en multipliant par M/N.",
+      "Mémoriser dans le navigateur (localStorage) le dernier nombre de personnes saisi."
+    ],
+    "acceptance": [
+      {
+        "id": "AC-1",
+        "given": "le convertisseur d'unités est affiché",
+        "when": "l'utilisateur saisit 2, choisit de tasse vers ml",
+        "then": "le résultat affiché est 480 ml"
+      },
+      {
+        "id": "AC-2",
+        "given": "le convertisseur d'unités est affiché",
+        "when": "l'utilisateur saisit 100, choisit de g vers once",
+        "then": "le résultat affiché est 3,5 oz (arrondi à une décimale, virgule décimale)"
+      },
+      {
+        "id": "AC-3",
+        "given": "le convertisseur de température est affiché",
+        "when": "l'utilisateur saisit 350 en °F vers °C",
+        "then": "le résultat affiché est 177 °C (arrondi à l'entier)"
+      },
+      {
+        "id": "AC-4",
+        "given": "le convertisseur de température est affiché",
+        "when": "l'utilisateur saisit 180 en °C vers °F",
+        "then": "le résultat affiché est 356 °F"
+      },
+      {
+        "id": "AC-5",
+        "given": "une recette pour 4 personnes contient une ligne 200 g",
+        "when": "l'utilisateur demande 6 personnes",
+        "then": "la ligne ajustée affiche 300 g"
+      },
+      {
+        "id": "AC-6",
+        "given": "le convertisseur d'unités est affiché",
+        "when": "l'utilisateur choisit de tasse vers g (volume vers masse)",
+        "then": "aucun résultat numérique n'est affiché et un élément avec role=\"alert\" contient un message en français indiquant que la conversion est impossible"
+      },
+      {
+        "id": "AC-7",
+        "given": "le convertisseur d'unités est affiché",
+        "when": "le champ valeur est vide, négatif ou non numérique",
+        "then": "aucun résultat numérique n'est affiché et un élément role=\"alert\" contient un message de saisie invalide en français"
+      },
+      {
+        "id": "AC-8",
+        "given": "l'utilisateur a saisi 6 personnes cibles",
+        "when": "la page est rechargée",
+        "then": "le champ du nombre de personnes cibles contient 6"
+      }
+    ],
+    "outOfScope": [
+      "Conversion volume vers masse dépendant de l'ingrédient (ex. tasse de farine en grammes)",
+      "Unités impériales britanniques, gaz mark, autres unités rares",
+      "Comptes, partage, enregistrement de recettes complètes, import depuis un site",
+      "Conseils de cuisson ou de nutrition"
+    ]
+  }
 }
