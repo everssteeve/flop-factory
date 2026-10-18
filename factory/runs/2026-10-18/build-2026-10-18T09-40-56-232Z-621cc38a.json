@@ -1,0 +1,49 @@
+{
+  "runId": "build-2026-10-18T09-40-56-232Z-621cc38a",
+  "atelier": "build",
+  "prompt": "dist/prompts/build-roue-corvees.md",
+  "model": "haiku",
+  "capUsd": 1.3039,
+  "remainingBeforeUsd": 2.6078,
+  "usd": 0.010262685,
+  "status": "ok",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "tools": [
+    "Bash",
+    "Edit",
+    "Read"
+  ],
+  "missingTools": [
+    "Write",
+    "Glob",
+    "Grep"
+  ],
+  "resultText": "L'app est construite dans le dossier courant. `node test.mjs` affiche `ok AC-1` à `ok AC-4` et sort avec le code 0. Le `report.json` est écrit avec `\"status\": \"ok\"`.\n\n**Fichiers produits**\n- `index.html` : page en français, titre « Roue des corvées », viewport, lien vers `style.css`, `app.js` en module. Aucune ressource externe, aucun script ou style en ligne.\n- `style.css` : mise en page en une colonne, passant à deux colonnes à partir de 720 px. Cibles tactiles de 44 px minimum, police système, règles d'impression.\n- `app.js` : fonctions pures exportées (`addName`, `validate`, `prepare`, `buildPlan`, `loadState`, `saveState`, `formatPlanText`, etc.). Le branchement à la page n'est exécuté que si `document` existe. Le DOM est rempli avec `textContent` et `createElement`, sans `innerHTML`.\n- `test.mjs` : appelle ces fonctions avec de vraies valeurs et un faux stockage. Il vérifie aussi la relecture du stockage (valeur présente, absente, JSON invalide) et la structure de la page.\n\n**Choix de conception**\n- Rotation : la personne d'index `p` fait la corvée `(p + semaine) mod C`. C'est ce qui donne l'exemple de l'AC-1 et chaque personne fait chaque corvée une fois sur 4 semaines dans l'AC-2.\n- `prepare(people, chores, weeks)` renvoie `{ error, plan }`. Si la saisie est invalide, `plan` vaut `null` et la page n'affiche aucun planning (AC-3).\n- Les doublons sont détectés sans tenir compte de la casse ni des espaces (AC-4).\n- Les données sont sauvegardées dans `localStorage` sous la clé `roue-corvees`. Le code n'utilise ni cookies, ni `fetch`, ni serveur.\n\n**Points à signaler**\n- Ma tentative de lister le dossier parent a été refusée par les permissions. Je n'ai donc rien vérifié en dehors du dossier courant. Le `report.json` est écrit ici, dans le dossier courant. Si les règles attendent un fichier à la racine du dossier de travail parent, il faudra le copier.\n- Je n'ai pas testé la page dans un vrai navigateur. Les contrôles de largeur à 375 px et 1280 px restent donc à",
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 7,
+  "permissionDenials": [
+    {
+      "tool_name": "Bash",
+      "tool_use_id": "toolu_0113Kepp3pPkDayZ36eWWQoE",
+      "tool_input": {
+        "command": "pwd; ls -la; ls -la ..; node --version",
+        "description": "Inspect working directory and Node version"
+      }
+    }
+  ],
+  "report": {
+    "status": "ok",
+    "summary": "App Roue des corvées construite sans dépendance : index.html, style.css, app.js (fonctions pures exportées + branchement DOM conditionnel) et test.mjs. `node test.mjs` affiche ok AC-1 à ok AC-4 et sort avec le code 0. Rotation : la personne d'index p fait la corvée (p + semaine) mod C. Saisie stockée dans localStorage sous la clé roue-corvees, lue au chargement via loadState. Aucun style/script en ligne, aucun fetch, pas de pied de page légal. Note : la lecture du dossier parent a été refusée par les permissions, donc non vérifiée ; rien n'a été installé, poussé ou déployé.",
+    "blockers": []
+  },
+  "stderrTail": ""
+}

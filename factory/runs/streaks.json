@@ -18,5 +18,7 @@
   "cerveau:factory/prompts/brain.md": 0,
   "cerveau:dist/prompts/bench-spec-checklist-valise.md": 0,
   "cerveau:dist/prompts/bench-build-checklist-valise.md": 0,
-  "cerveau:factory/prompts/review.md": 0
+  "cerveau:factory/prompts/review.md": 0,
+  "build:dist/prompts/spec-roue-corvees.md": 0,
+  "build:dist/prompts/build-roue-corvees.md": 0
 }

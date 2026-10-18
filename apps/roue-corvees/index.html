@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; media-src 'self' data:; frame-src 'none'; worker-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"><meta name="referrer" content="no-referrer">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Roue des corvées</title>
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <h1>Roue des corvées</h1>
+    <p class="intro">Générez en un clic un planning de rotation des tâches ménagères entre les membres d'un foyer ou de colocataires, à copier ou imprimer.</p>
+  </header>
+
+  <main class="layout">
+    <section class="card" aria-labelledby="people-title">
+      <h2 id="people-title">Personnes</h2>
+      <form id="add-person-form" class="add-form">
+        <label for="person-input">Nom de la personne</label>
+        <div class="row">
+          <input id="person-input" name="person" type="text" autocomplete="off" maxlength="60" required>
+          <button type="submit" class="btn">Ajouter</button>
+        </div>
+      </form>
+      <p class="count" id="people-count" aria-live="polite">0 personne</p>
+      <ul id="people-list" class="item-list"></ul>
+    </section>
+
+    <section class="card" aria-labelledby="chores-title">
+      <h2 id="chores-title">Corvées</h2>
+      <form id="add-chore-form" class="add-form">
+        <label for="chore-input">Nom de la corvée</label>
+        <div class="row">
+          <input id="chore-input" name="chore" type="text" autocomplete="off" maxlength="60" required>
+          <button type="submit" class="btn">Ajouter</button>
+        </div>
+      </form>
+      <ul id="chore-list" class="item-list"></ul>
+    </section>
+
+    <section class="card card-wide" aria-labelledby="gen-title">
+      <h2 id="gen-title">Planning</h2>
+      <div class="row weeks-row">
+        <label for="weeks">Nombre de semaines</label>
+        <input id="weeks" type="number" min="1" max="52" value="4">
+      </div>
+      <button id="generate" type="button" class="btn btn-primary">Générer le planning</button>
+      <p id="message" class="message" role="alert" hidden></p>
+
+      <div id="plan-section" hidden>
+        <div id="plan" class="plan"></div>
+        <label for="plan-text">Texte à copier</label>
+        <textarea id="plan-text" class="plan-text" rows="10" readonly></textarea>
+        <div class="row actions">
+          <button id="copy" type="button" class="btn">Copier le texte</button>
+          <button id="print" type="button" class="btn">Imprimer</button>
+        </div>
+        <p id="copy-status" class="status" aria-live="polite"></p>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

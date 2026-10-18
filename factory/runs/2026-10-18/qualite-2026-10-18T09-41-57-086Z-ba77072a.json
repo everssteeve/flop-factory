@@ -1,0 +1,40 @@
+{
+  "runId": "qualite-2026-10-18T09-41-57-086Z-ba77072a",
+  "atelier": "qualite",
+  "prompt": "factory/prompts/review.md",
+  "model": "haiku",
+  "capUsd": 0.4348,
+  "remainingBeforeUsd": 0.8695,
+  "usd": 0.00503958,
+  "status": "ok",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "tools": [
+    "Bash",
+    "Edit",
+    "Read"
+  ],
+  "missingTools": [
+    "Write",
+    "Glob",
+    "Grep"
+  ],
+  "resultText": "La revue est terminée : `review.json` et `report.json` sont écrits dans le dossier courant. Score 8/10, aucun point bloquant.\n\n- **Critères d'acceptation :** les quatre sont implémentés dans `app.js` et testés par `test.mjs` via les fonctions exportées (`prepare`, `buildPlan`, `addName`, `validate`, `countLabel`). `node test.mjs` passe.\n- **Utilisabilité :** les champs ont des labels, le message d'erreur est en `role=\"alert\"`, et le CSS ne paraît pas fragile à 375 px. Le débordement réel reste à confirmer par l'usine en navigateur.\n- **Interdits :** aucune ressource externe, aucun script inline, aucun sujet interdit, pas d'imitation de marque.\n\nRemarques non bloquantes, détaillées dans `review.json` :\n- En impression, le libellé « Nombre de semaines » et son champ restent visibles.\n- Un doublon saisi est ignoré sans message.\n- Avec plus de personnes que de corvées, deux personnes partagent une corvée la même semaine, sans signalement.\n- Les noms chargés depuis le stockage local ne sont pas tronqués à 60 caractères.\n- L'interface n'indique pas que les noms sont conservés dans le navigateur.\n\nJe n'ai touché à aucun autre fichier et je n'ai lu aucune variable d'environnement.",
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 5,
+  "permissionDenials": [],
+  "report": {
+    "status": "ok",
+    "summary": "Revue de Roue des corvées : les 4 critères d'acceptation sont implémentés et testés via les fonctions exportées ; node test.mjs passe. Aucun point bloquant. Score 8/10, avec remarques non bloquantes (impression, retour sur doublon, troncature au chargement, mention du stockage local).",
+    "blockers": []
+  },
+  "stderrTail": ""
+}

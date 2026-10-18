@@ -1,0 +1,40 @@
+{
+  "runId": "build-2026-10-18T09-40-40-259Z-a4f12174",
+  "atelier": "build",
+  "prompt": "dist/prompts/spec-roue-corvees.md",
+  "model": "haiku",
+  "capUsd": 1.305,
+  "remainingBeforeUsd": 2.61,
+  "usd": 0.00219714,
+  "status": "ok",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "tools": [
+    "Bash",
+    "Edit",
+    "Read"
+  ],
+  "missingTools": [
+    "Write",
+    "Glob",
+    "Grep"
+  ],
+  "resultText": "J'ai écrit `spec.json` et `report.json` dans le dossier courant. Les deux fichiers sont du JSON valide.\n\n**Spécification « Roue des corvées »** (`roue-corvees`)\n- **Idée :** générer un planning de rotation équitable des tâches ménagères entre les membres d'un foyer ou de colocataires, à copier ou imprimer.\n- **Fonctions :** saisir personnes et corvées puis générer un planning sur plusieurs semaines ; faire tourner les corvées d'une semaine à l'autre ; copier le planning en texte ou l'imprimer ; conserver les saisies dans le navigateur.\n- **Critères d'acceptation (4) :**\n  - AC-1 : la rotation avance d'une corvée par semaine (Alice passe de Vaisselle à Poubelles en semaine 2).\n  - AC-2 : sur 4 personnes et 4 corvées, chacun fait chaque corvée une fois sur 4 semaines.\n  - AC-3 : avec moins de deux personnes ou aucune corvée, aucun planning n'est affiché et un message s'affiche.\n  - AC-4 : « alice » saisi après « Alice » n'est pas dupliqué et le compteur affiche 1 personne.\n- **Hors périmètre :** comptes et synchronisation, notifications, calcul de dettes entre colocataires, suivi long terme, serveur et requêtes externes.\n\n**Choix à noter :**\n- Aucun sujet de la liste interdite n'est concerné, donc pas de `failed`.\n- Je n'ai pas écrit de critère sur la copie du planning : le contenu du presse-papier n'est pas vérifiable par un test Node simple. La fonction reste dans les fonctionnalités, sans critère associé.\n- Les critères de mise en page, d'erreurs console et de requêtes externes sont omis, comme demandé.\n\n**`report.json` :** `\"status\": \"ok\"`, sans blocage.",
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 2,
+  "permissionDenials": [],
+  "report": {
+    "status": "ok",
+    "summary": "Spécification de la Roue des corvées écrite dans spec.json : 4 fonctions, 4 critères d'acceptation testables (rotation, couverture équitable, validation, dédoublonnage) et périmètre exclu (comptes, notifications, dettes, serveur). Aucun sujet interdit détecté. Le critère de copie du planning a été retiré pour rester testable sans navigateur ; la fonction correspondante reste dans les fonctionnalités.",
+    "blockers": []
+  },
+  "stderrTail": ""
+}

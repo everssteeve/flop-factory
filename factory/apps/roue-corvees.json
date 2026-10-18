@@ -1,0 +1,60 @@
+{
+  "slug": "roue-corvees",
+  "status": "live",
+  "attempts": 1,
+  "liveSince": "2026-10-18T09:43:24.444Z",
+  "history": [
+    {
+      "at": "2026-10-18T09:43:24.444Z",
+      "decision": "go",
+      "reasons": []
+    }
+  ],
+  "spec": {
+    "slug": "roue-corvees",
+    "name": "Roue des corvées",
+    "pitch": "Génère en un clic un planning de rotation des tâches ménagères entre les membres d'un foyer ou de colocataires, à copier ou imprimer.",
+    "problem": "Dans un foyer ou une colocation, les corvées reviennent toujours aux mêmes personnes, ce qui crée des tensions. Organiser une rotation équitable à la main prend du temps et se discute longtemps.",
+    "audience": "Colocataires, familles et couples qui partagent les tâches ménagères, sur mobile ou ordinateur, sans créer de compte.",
+    "features": [
+      "Saisir les personnes et les corvées, puis générer un planning de rotation sur plusieurs semaines.",
+      "Faire tourner les corvées d'une semaine à l'autre : chaque personne passe à la corvée suivante de la liste.",
+      "Copier le planning en texte brut pour l'envoyer dans un groupe de discussion, ou l'imprimer.",
+      "Conserver les personnes et les corvées saisies dans le navigateur pour la visite suivante."
+    ],
+    "acceptance": [
+      {
+        "id": "AC-1",
+        "given": "trois personnes Alice, Bruno, Chloé et trois corvées Vaisselle, Poubelles, Sol, Alice étant associée à Vaisselle, Bruno à Poubelles et Chloé à Sol en semaine 1",
+        "when": "on génère le planning sur 3 semaines",
+        "then": "en semaine 2, Alice fait Poubelles, Bruno fait Sol et Chloé fait Vaisselle"
+      },
+      {
+        "id": "AC-2",
+        "given": "quatre personnes et quatre corvées distinctes",
+        "when": "on génère le planning sur 4 semaines",
+        "then": "chaque personne a fait chaque corvée exactement une fois sur les 4 semaines"
+      },
+      {
+        "id": "AC-3",
+        "given": "une liste ne contenant qu'une seule personne ou aucune corvée",
+        "when": "on demande à générer le planning",
+        "then": "aucun planning n'est affiché et le message 'Ajoutez au moins deux personnes et une corvée.' est affiché"
+      },
+      {
+        "id": "AC-4",
+        "given": "une personne déjà saisie sous le nom 'Alice'",
+        "when": "on tente d'ajouter 'alice ' (casse et espaces différentes)",
+        "then": "la liste contient toujours une seule personne et le compteur affiche 1 personne"
+      }
+    ],
+    "outOfScope": [
+      "Comptes utilisateurs, connexion et synchronisation entre appareils.",
+      "Notifications, rappels par e-mail ou SMS.",
+      "Calcul de dettes ou de répartition d'argent entre colocataires.",
+      "Suivi de réalisation des corvées et historique long terme.",
+      "Serveur, base de données, cookies et requêtes vers des services tiers."
+    ]
+  },
+  "measuredSince": "2026-10-18T09:43:24.492Z"
+}
