@@ -1,0 +1,40 @@
+{
+  "runId": "qualite-2026-10-19T10-52-05-409Z-7a7d2868",
+  "atelier": "qualite",
+  "prompt": "factory/prompts/review.md",
+  "model": "haiku",
+  "capUsd": 0.4348,
+  "remainingBeforeUsd": 0.8695,
+  "usd": 0.00506093,
+  "status": "ok",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "tools": [
+    "Bash",
+    "Edit",
+    "Read"
+  ],
+  "missingTools": [
+    "Write",
+    "Glob",
+    "Grep"
+  ],
+  "resultText": "Revue terminée. J'ai écrit `review.json` (score 8/10, aucun blocage) et `report.json` (status `ok`) dans le dossier courant. Je n'ai touché à aucun autre fichier.\n\n**Vérifications :**\n- Les 8 critères d'acceptation sont implémentés dans `app.js` et branchés dans `index.html`.\n- `test.mjs` exécute les fonctions exportées qui produisent les résultats attendus. `node test.mjs` passe (exit 0).\n- Les valeurs de l'AC-1 à l'AC-6 ont été recalculées à la main et correspondent.\n- Le HTML est sans ressource externe, sans script ni style en ligne, et les contrôles ont des libellés.\n- Rien d'interdit : pas de collecte de données, pas de sujet listé, pas d'imitation de marque.\n\n**Remarques non bloquantes (dans `notes`) :**\n- `parseNombre` accepte `1e3` (lu comme 1000) et `0x10` (lu comme 16).\n- Aucune borne haute sur les dimensions ni les ouvertures.\n- Les résultats carreaux et boîtes restent affichés après un changement de pièces, sans recalcul.\n- L'AC-8 n'est testé que pour la longueur ; la largeur suit le même chemin sans test dédié.\n- Le comportement à 375 px n'est pas testable sous Node. Je le signale à l'usine pour vérification dans le navigateur.",
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 4,
+  "permissionDenials": [],
+  "report": {
+    "status": "ok",
+    "summary": "Revue qualité de calcul-carrelage-chutes : les 8 critères d'acceptation sont implémentés et testés via les fonctions exportées ; node test.mjs passe. Aucun blocage. Score 8/10. Remarques non bloquantes dans review.json (parsing trop permissif, bornes absentes, résultats carreaux/boîtes non recalculés après changement de pièces, AC-8 testé seulement pour la longueur).",
+    "blockers": []
+  },
+  "stderrTail": ""
+}

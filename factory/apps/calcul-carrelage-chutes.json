@@ -1,0 +1,84 @@
+{
+  "slug": "calcul-carrelage-chutes",
+  "status": "live",
+  "attempts": 1,
+  "liveSince": "2026-10-19T10:53:43.249Z",
+  "history": [
+    {
+      "at": "2026-10-19T10:53:43.249Z",
+      "decision": "go",
+      "reasons": []
+    }
+  ],
+  "spec": {
+    "slug": "calcul-carrelage-chutes",
+    "name": "Calcul carrelage et chutes",
+    "pitch": "Estime le carrelage ou le parquet à commander, chutes comprises, pièce par pièce, en moins d'une minute.",
+    "problem": "Avant d'acheter du carrelage ou du parquet, il faut retrancher les ouvertures, ajouter les chutes selon le type de pose puis convertir le total en boîtes ou en carreaux entiers ; faire ce calcul à la main mène souvent à en commander trop ou trop peu.",
+    "audience": "Particuliers qui rénovent ou carrelent eux-mêmes une salle de bain, une cuisine ou un séjour, et artisans qui veulent une estimation rapide.",
+    "features": [
+      "Ajouter des pièces avec longueur et largeur en mètres, et retrancher la surface des ouvertures (portes, fenêtres) pour obtenir la surface nette.",
+      "Choisir le type de pose (droite : 10 % de chutes, diagonale : 15 %, motifs : 20 %) qui majore la surface à commander.",
+      "Saisir le format du carreau en centimètres ou la surface couverte par boîte pour obtenir le nombre de carreaux ou de boîtes, arrondi à l'entier supérieur.",
+      "Afficher le total de la surface nette et de la surface à commander pour l'ensemble des pièces."
+    ],
+    "acceptance": [
+      {
+        "id": "AC-1",
+        "given": "une pièce de 4 m de longueur et 3 m de largeur, sans ouverture, pose droite",
+        "when": "le calcul est lancé",
+        "then": "la surface nette affichée est 12,00 m² et la surface à commander affichée est 13,20 m²"
+      },
+      {
+        "id": "AC-2",
+        "given": "une pièce de 4 m sur 3 m avec une seule ouverture de 0,90 m sur 2,10 m, pose droite",
+        "when": "le calcul est lancé",
+        "then": "la surface nette affichée est 10,11 m² et la surface à commander affichée est 11,12 m²"
+      },
+      {
+        "id": "AC-3",
+        "given": "une pièce de 4 m sur 3 m sans ouverture, pose diagonale",
+        "when": "le calcul est lancé",
+        "then": "la surface à commander affichée est 13,80 m²"
+      },
+      {
+        "id": "AC-4",
+        "given": "une surface à commander de 13,20 m² et des carreaux de 30 cm sur 30 cm",
+        "when": "le calcul du nombre de carreaux est lancé",
+        "then": "le nombre de carreaux affiché est 147"
+      },
+      {
+        "id": "AC-5",
+        "given": "une surface à commander de 13,20 m² et des boîtes couvrant 1,44 m² chacune",
+        "when": "le calcul du nombre de boîtes est lancé",
+        "then": "le nombre de boîtes affiché est 10"
+      },
+      {
+        "id": "AC-6",
+        "given": "deux pièces : 12 m² en pose droite et 6 m² en pose diagonale, sans ouverture",
+        "when": "les deux pièces sont ajoutées et le total est affiché",
+        "then": "la surface nette totale affichée est 18,00 m² et la surface totale à commander affichée est 20,10 m²"
+      },
+      {
+        "id": "AC-7",
+        "given": "une pièce dont la surface d'ouvertures est supérieure à sa surface brute",
+        "when": "le calcul est lancé",
+        "then": "la surface nette affichée est 0,00 m² et aucune valeur négative n'est affichée"
+      },
+      {
+        "id": "AC-8",
+        "given": "un champ de longueur laissé vide ou contenant une valeur négative",
+        "when": "l'utilisateur tente d'ajouter la pièce",
+        "then": "la pièce n'est pas ajoutée et le message « Valeur invalide » est affiché"
+      }
+    ],
+    "outOfScope": [
+      "calcul de prix, devis ou comparaison de tarifs des fournisseurs",
+      "conseil de pose, plans de calepinage ou découpe des carreaux",
+      "unités impériales ou conversion automatique d'unités autres que m et cm",
+      "compte utilisateur, synchronisation entre appareils ou envoi des données sur un serveur",
+      "calcul des plinthes, des joints, de la colle ou des mortiers"
+    ]
+  },
+  "measuredSince": "2026-10-19T10:53:43.301Z"
+}

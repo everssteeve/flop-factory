@@ -1,0 +1,182 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #1a1a1a;
+  background: #f4f5f7;
+  overflow-x: hidden;
+}
+
+.entete {
+  background: #1f3b57;
+  color: #ffffff;
+  padding: 1rem;
+}
+
+.entete h1 {
+  margin: 0 0 0.25rem;
+  font-size: 1.5rem;
+  overflow-wrap: anywhere;
+}
+
+.entete p {
+  margin: 0;
+}
+
+.contenu {
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: 1rem;
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.carte {
+  background: #ffffff;
+  border: 1px solid #d0d4da;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  min-width: 0;
+}
+
+.carte h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.25rem;
+  overflow-wrap: anywhere;
+}
+
+.formulaire {
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.champ {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.champ label,
+.ouvertures legend {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+input,
+select {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.5rem 0.75rem;
+  font: inherit;
+  color: #1a1a1a;
+  background: #ffffff;
+  border: 1px solid #6b7280;
+  border-radius: 0.375rem;
+}
+
+input:focus,
+select:focus,
+.bouton:focus {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.ouvertures {
+  border: 1px solid #d0d4da;
+  border-radius: 0.375rem;
+  padding: 0.75rem;
+  margin: 0;
+  min-width: 0;
+}
+
+.ligne-ouverture {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  min-width: 0;
+}
+
+.ligne-ouverture:last-child {
+  margin-bottom: 0;
+}
+
+.bouton {
+  min-height: 44px;
+  padding: 0.5rem 1rem;
+  font: inherit;
+  font-weight: 600;
+  color: #ffffff;
+  background: #1f3b57;
+  border: 0;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  max-width: 100%;
+}
+
+.bouton:hover {
+  background: #163049;
+}
+
+.erreur {
+  margin: 0;
+  color: #9b1c1c;
+  font-weight: 600;
+  min-height: 1.5em;
+  overflow-wrap: anywhere;
+}
+
+.liste {
+  margin: 0 0 0.75rem;
+  padding-left: 1.25rem;
+  overflow-wrap: anywhere;
+}
+
+.liste li {
+  margin-bottom: 0.5rem;
+}
+
+.totaux {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.25rem 1rem;
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.totaux dt {
+  font-weight: 600;
+}
+
+.totaux dd {
+  margin: 0 0 0.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.resultat {
+  margin: 0.75rem 0 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 600px) {
+  .ligne-ouverture {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .totaux {
+    grid-template-columns: auto 1fr;
+  }
+}

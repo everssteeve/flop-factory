@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; media-src 'self' data:; frame-src 'none'; worker-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"><meta name="referrer" content="no-referrer">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Calcul carrelage et chutes</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="entete">
+    <h1>Calcul carrelage et chutes</h1>
+    <p>Estime le carrelage ou le parquet à commander, chutes comprises, pièce par pièce, en moins d'une minute.</p>
+  </header>
+
+  <main class="contenu">
+    <section class="carte" aria-labelledby="titre-piece">
+      <h2 id="titre-piece">1. Ajouter une pièce</h2>
+      <form id="form-piece" class="formulaire" novalidate>
+        <div class="champ">
+          <label for="nom">Nom de la pièce (facultatif)</label>
+          <input id="nom" name="nom" type="text" autocomplete="off">
+        </div>
+        <div class="champ">
+          <label for="longueur">Longueur (m)</label>
+          <input id="longueur" name="longueur" type="text" inputmode="decimal" autocomplete="off">
+        </div>
+        <div class="champ">
+          <label for="largeur">Largeur (m)</label>
+          <input id="largeur" name="largeur" type="text" inputmode="decimal" autocomplete="off">
+        </div>
+
+        <fieldset class="ouvertures">
+          <legend>Ouvertures : portes, fenêtres (facultatif, en m)</legend>
+          <div class="ligne-ouverture">
+            <div class="champ">
+              <label for="o1-largeur">Ouverture 1 : largeur (m)</label>
+              <input id="o1-largeur" type="text" inputmode="decimal" autocomplete="off">
+            </div>
+            <div class="champ">
+              <label for="o1-hauteur">Ouverture 1 : hauteur (m)</label>
+              <input id="o1-hauteur" type="text" inputmode="decimal" autocomplete="off">
+            </div>
+          </div>
+          <div class="ligne-ouverture">
+            <div class="champ">
+              <label for="o2-largeur">Ouverture 2 : largeur (m)</label>
+              <input id="o2-largeur" type="text" inputmode="decimal" autocomplete="off">
+            </div>
+            <div class="champ">
+              <label for="o2-hauteur">Ouverture 2 : hauteur (m)</label>
+              <input id="o2-hauteur" type="text" inputmode="decimal" autocomplete="off">
+            </div>
+          </div>
+          <div class="ligne-ouverture">
+            <div class="champ">
+              <label for="o3-largeur">Ouverture 3 : largeur (m)</label>
+              <input id="o3-largeur" type="text" inputmode="decimal" autocomplete="off">
+            </div>
+            <div class="champ">
+              <label for="o3-hauteur">Ouverture 3 : hauteur (m)</label>
+              <input id="o3-hauteur" type="text" inputmode="decimal" autocomplete="off">
+            </div>
+          </div>
+        </fieldset>
+
+        <div class="champ">
+          <label for="pose">Type de pose</label>
+          <select id="pose" name="pose">
+            <option value="droite">Droite (10 % de chutes)</option>
+            <option value="diagonale">Diagonale (15 % de chutes)</option>
+            <option value="motifs">Motifs (20 % de chutes)</option>
+          </select>
+        </div>
+
+        <p id="erreur-piece" class="erreur" role="alert"></p>
+        <button type="submit" class="bouton">Ajouter la pièce</button>
+      </form>
+    </section>
+
+    <section class="carte" aria-labelledby="titre-liste">
+      <h2 id="titre-liste">2. Pièces et totaux</h2>
+      <ul id="liste-pieces" class="liste"></ul>
+      <dl class="totaux">
+        <dt>Surface nette totale</dt>
+        <dd id="total-nette">0,00 m²</dd>
+        <dt>Surface totale à commander</dt>
+        <dd id="total-commander">0,00 m²</dd>
+      </dl>
+    </section>
+
+    <section class="carte" aria-labelledby="titre-carreaux">
+      <h2 id="titre-carreaux">3. Nombre de carreaux</h2>
+      <form id="form-carreaux" class="formulaire" novalidate>
+        <div class="champ">
+          <label for="cote-carreau">Côté du carreau (cm, carré)</label>
+          <input id="cote-carreau" type="text" inputmode="decimal" autocomplete="off" value="30">
+        </div>
+        <p id="erreur-carreaux" class="erreur" role="alert"></p>
+        <button type="submit" class="bouton">Calculer le nombre de carreaux</button>
+      </form>
+      <p id="resultat-carreaux" class="resultat" aria-live="polite"></p>
+    </section>
+
+    <section class="carte" aria-labelledby="titre-boites">
+      <h2 id="titre-boites">4. Nombre de boîtes</h2>
+      <form id="form-boites" class="formulaire" novalidate>
+        <div class="champ">
+          <label for="couverture-boite">Surface couverte par boîte (m²)</label>
+          <input id="couverture-boite" type="text" inputmode="decimal" autocomplete="off">
+        </div>
+        <p id="erreur-boites" class="erreur" role="alert"></p>
+        <button type="submit" class="bouton">Calculer le nombre de boîtes</button>
+      </form>
+      <p id="resultat-boites" class="resultat" aria-live="polite"></p>
+    </section>
+  </main>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

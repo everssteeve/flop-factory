@@ -20,5 +20,7 @@
   "cerveau:dist/prompts/bench-build-checklist-valise.md": 0,
   "cerveau:factory/prompts/review.md": 0,
   "build:dist/prompts/spec-roue-corvees.md": 0,
-  "build:dist/prompts/build-roue-corvees.md": 0
+  "build:dist/prompts/build-roue-corvees.md": 0,
+  "build:dist/prompts/spec-calcul-carrelage-chutes.md": 0,
+  "build:dist/prompts/build-calcul-carrelage-chutes.md": 0
 }
