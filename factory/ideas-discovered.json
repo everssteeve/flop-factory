@@ -24,6 +24,21 @@
       "slug": "calcul-plants-massif",
       "idea": "Calculer combien de plants acheter pour un massif ou un potager : longueur et largeur de la zone, écart entre les plants, puis nombre total. Pour les jardiniers amateurs qui planifient leurs plantations.",
       "evidence": "Fiches de plantation expliquent la densité par m² à partir de l'écart entre plants ; peu de sources françaises simples trouvées."
+    },
+    {
+      "slug": "calcul-peinture-pieces",
+      "idea": "Calculer le nombre de pots de peinture pour les murs et le plafond d'une pièce : on saisit les dimensions, les portes et fenêtres, le nombre de couches et le rendement du pot, puis l'app donne le nombre de pots avec une marge.",
+      "evidence": "Nombreuses pages de conseil bricolage et construction répondant à « combien de litres de peinture par m2 » et « calculer quantité peinture », avec une méthode surtout manuelle."
+    },
+    {
+      "slug": "calcul-cartons-demenagement",
+      "idea": "Estimer le nombre de cartons pour un déménagement : on saisit la surface du logement, le nombre de pièces et de personnes, puis l'app calcule un volume à déménager, le nombre de cartons et une marge de sécurité.",
+      "evidence": "Pages de conseil déménagement qui demandent comment calculer le nombre de cartons ou le volume pour un logement donné, avec des règles empiriques difficiles à appliquer."
+    },
+    {
+      "slug": "calcul-boissons-soiree",
+      "idea": "Calculer le nombre de bouteilles de vin pour une soirée entre amis : on saisit le nombre d'invités, la durée, la part de non-buveurs et les autres boissons proposées, l'app donne un nombre de bouteilles arrondi à l'unité supérieure.",
+      "evidence": "Calculateurs de boissons et guides pratiques répondant à « combien de bouteilles de vin pour X personnes », souvent avec des ratios qui divergent selon les sources."
     }
   ]
 }

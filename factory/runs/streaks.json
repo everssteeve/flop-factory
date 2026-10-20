@@ -22,5 +22,7 @@
   "build:dist/prompts/spec-roue-corvees.md": 0,
   "build:dist/prompts/build-roue-corvees.md": 0,
   "build:dist/prompts/spec-calcul-carrelage-chutes.md": 0,
-  "build:dist/prompts/build-calcul-carrelage-chutes.md": 0
+  "build:dist/prompts/build-calcul-carrelage-chutes.md": 0,
+  "build:dist/prompts/spec-calcul-plants-massif.md": 0,
+  "build:dist/prompts/build-calcul-plants-massif.md": 0
 }

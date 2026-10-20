@@ -1,0 +1,60 @@
+{
+  "slug": "calcul-plants-massif",
+  "status": "live",
+  "attempts": 1,
+  "liveSince": "2026-10-20T10:11:00.706Z",
+  "history": [
+    {
+      "at": "2026-10-20T10:11:00.706Z",
+      "decision": "go",
+      "reasons": []
+    }
+  ],
+  "spec": {
+    "slug": "calcul-plants-massif",
+    "name": "Calcul plants massif",
+    "pitch": "Calcule le nombre de plants à acheter pour un massif ou un potager rectangulaire, à partir de sa taille et de l'écart entre les plants.",
+    "problem": "Les jardiniers amateurs achètent souvent trop ou trop peu de plants faute de savoir combien tiennent sur la surface prévue.",
+    "audience": "Jardiniers amateurs qui planifient un massif ou un potager, sur mobile ou sur ordinateur, sans compte.",
+    "features": [
+      "Saisir la longueur, la largeur de la zone et l'écart entre les plants, en centimètres, puis obtenir le nombre total de plants.",
+      "Afficher le détail du calcul : nombre de plants par ligne, nombre de lignes et total.",
+      "Signaler clairement une saisie invalide (valeur vide, nulle ou négative) sans afficher de résultat faux."
+    ],
+    "acceptance": [
+      {
+        "id": "AC-1",
+        "given": "la page est ouverte et les champs sont vides",
+        "when": "l'utilisateur saisit longueur 200, largeur 100, écart 50 et clique sur le bouton Calculer",
+        "then": "l'élément de résultat affiche le texte 15 plants, avec 5 plants par ligne et 3 lignes"
+      },
+      {
+        "id": "AC-2",
+        "given": "la page est ouverte",
+        "when": "l'utilisateur saisit longueur 30, largeur 30, écart 30 et clique sur Calculer",
+        "then": "le total affiché est 4 plants (2 par ligne, 2 lignes), chaque bord recevant un plant"
+      },
+      {
+        "id": "AC-3",
+        "given": "la page est ouverte",
+        "when": "l'utilisateur saisit longueur 100, largeur 20, écart 50 et clique sur Calculer",
+        "then": "le total affiché est 3 plants (3 par ligne, 1 ligne) car l'écart est plus grand que la largeur"
+      },
+      {
+        "id": "AC-4",
+        "given": "la page est ouverte",
+        "when": "l'utilisateur saisit longueur 200, largeur 100, écart 0 (ou laisse l'écart vide) et clique sur Calculer",
+        "then": "un message d'erreur en français indiquant que l'écart doit être supérieur à 0 s'affiche et aucun total de plants n'est affiché"
+      }
+    ],
+    "outOfScope": [
+      "Plantation en quinconce ou en triangle et autres disposition non rectangulaires",
+      "Formes de massif autres que le rectangle",
+      "Choix ou conseils de variétés, de dates de plantation ou d'entretien",
+      "Calcul du prix ou du budget d'achat",
+      "Compte utilisateur, synchronisation ou envoi des données vers un serveur",
+      "Sauvegarde de l'historique des calculs"
+    ]
+  },
+  "measuredSince": "2026-10-20T10:11:00.751Z"
+}

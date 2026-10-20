@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; media-src 'self' data:; frame-src 'none'; worker-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"><meta name="referrer" content="no-referrer">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Calcul plants massif</title>
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <main class="conteneur">
+    <h1>Calcul plants massif</h1>
+    <p class="intro">Indiquez la taille de votre massif ou potager rectangulaire et l'écart entre les plants pour savoir combien en acheter.</p>
+
+    <form id="form-massif" class="formulaire" novalidate>
+      <div class="champ">
+        <label for="longueur">Longueur de la zone (cm)</label>
+        <input id="longueur" name="longueur" type="number" inputmode="decimal" min="0" step="any" autocomplete="off">
+      </div>
+      <div class="champ">
+        <label for="largeur">Largeur de la zone (cm)</label>
+        <input id="largeur" name="largeur" type="number" inputmode="decimal" min="0" step="any" autocomplete="off">
+      </div>
+      <div class="champ">
+        <label for="ecart">Écart entre les plants (cm)</label>
+        <input id="ecart" name="ecart" type="number" inputmode="decimal" min="0" step="any" autocomplete="off">
+      </div>
+      <button type="submit" class="bouton">Calculer</button>
+    </form>
+
+    <p id="erreur" class="erreur" role="alert" hidden></p>
+
+    <section id="resultat" class="resultat" aria-live="polite" hidden>
+      <p id="resultat-total" class="resultat-total"></p>
+      <p id="resultat-detail" class="resultat-detail"></p>
+    </section>
+  </main>
+</body>
+</html>

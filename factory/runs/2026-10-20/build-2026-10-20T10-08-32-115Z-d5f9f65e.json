@@ -1,0 +1,40 @@
+{
+  "runId": "build-2026-10-20T10-08-32-115Z-d5f9f65e",
+  "atelier": "build",
+  "prompt": "dist/prompts/spec-calcul-plants-massif.md",
+  "model": "haiku",
+  "capUsd": 1.305,
+  "remainingBeforeUsd": 2.61,
+  "usd": 0.002449055,
+  "status": "ok",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "tools": [
+    "Bash",
+    "Edit",
+    "Read"
+  ],
+  "missingTools": [
+    "Write",
+    "Glob",
+    "Grep"
+  ],
+  "resultText": "La spec est écrite dans `spec.json` et le rapport dans `report.json`, tous deux JSON valides. L'idée ne touche à aucun sujet interdit.\n\n**Ce que la spec définit**\n- **Calcul :** pour une longueur L, une largeur l et un écart e (en cm), le nombre de plants par ligne vaut `floor(L/e) + 1`, le nombre de lignes `floor(l/e) + 1`, et le total leur produit. Chaque bord reçoit donc un plant.\n- **Fonctions :** saisie des dimensions et de l'écart, détail du calcul (plants par ligne, lignes, total), et message d'erreur pour une saisie vide, nulle ou négative.\n- **Critères d'acceptation (4) :**\n  - AC-1 : 200 × 100 cm, écart 50 → 15 plants (5 par ligne, 3 lignes).\n  - AC-2 : 30 × 30 cm, écart 30 → 4 plants.\n  - AC-3 : 100 × 20 cm, écart 50 → 3 plants (cas où l'écart dépasse la largeur).\n  - AC-4 : écart à 0 ou vide → message d'erreur en français et aucun total affiché.\n- **Hors périmètre :** dispositions en quinconce ou triangle, formes autres que le rectangle, conseils de variétés ou de dates, prix, compte utilisateur, historique.\n\n**Choix à relire**\n- J'ai pris les centimètres pour toutes les saisies afin d'éviter les erreurs d'unités.\n- La formule « un plant à chaque bord » est une convention. Pour un massif fermé ou une rangée sans bord, le résultat serait différent. Je l'ai choisie comme la plus simple à expliquer.\n- Les critères ne portent que sur le comportement et les calculs. La mise en page, l'affichage mobile et les erreurs console ne figurent pas, conformément aux consignes.",
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 2,
+  "permissionDenials": [],
+  "report": {
+    "status": "ok",
+    "summary": "Spec écrite pour l'app statique calcul-plants-massif : calcul du nombre de plants (longueur, largeur, écart en cm) avec 4 critères d'acceptation testables et un périmètre limité au rectangle.",
+    "blockers": []
+  },
+  "stderrTail": ""
+}
