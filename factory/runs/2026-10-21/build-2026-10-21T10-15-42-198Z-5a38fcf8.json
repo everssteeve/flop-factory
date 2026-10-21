@@ -1,0 +1,40 @@
+{
+  "runId": "build-2026-10-21T10-15-42-198Z-5a38fcf8",
+  "atelier": "build",
+  "prompt": "dist/prompts/build-calcul-peinture-pieces.md",
+  "model": "haiku",
+  "capUsd": 1.3035,
+  "remainingBeforeUsd": 2.6071,
+  "usd": 0.00803674,
+  "status": "ok",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "tools": [
+    "Bash",
+    "Edit",
+    "Read"
+  ],
+  "missingTools": [
+    "Write",
+    "Glob",
+    "Grep"
+  ],
+  "resultText": "L'app est construite dans le dossier courant. `node test.mjs` affiche `ok AC-1` à `ok AC-4` et sort avec le code 0. Le `report.json` est écrit avec `\"status\": \"ok\"` et aucun blocage.\n\n**Fichiers produits**\n- `index.html` : page en français, titre « Calcul Peinture Pièces », viewport, `style.css` et `app.js` en module. Aucune ressource externe.\n- `style.css` : mise en page fluide, police système, cibles d'au moins 44 px.\n- `app.js` : fonctions exportées sans DOM (`validate`, `calculer`, `formaterResultat`, `lireNombre`). Le branchement à la page ne s'exécute que si `document` existe.\n- `test.mjs` : appelle ces fonctions pour chaque critère.\n- `report.json`.\n\n**Calcul retenu**\n- Murs : 2 × (longueur + largeur) × hauteur, moins 2 m² par porte et 1,5 m² par fenêtre.\n- Plafond : longueur × largeur.\n- Pots : arrondi supérieur de (surface totale × couches × 1,1 / rendement).\n\nLes valeurs des critères AC-1 et AC-2 (45 m², 32 m², 44 m², 10 et 5 pots) se retrouvent avec cette formule.\n\n**Choix de prudence**\n- Une ouverture dont la surface est égale à celle des murs est acceptée. L'erreur n'est déclenchée que si elle dépasse strictement.\n- Un nombre de portes ou de fenêtres vide compte pour 0.\n- Une dimension négative ou non numérique est traitée comme une dimension invalide.\n- L'app ne stocke rien, donc il n'y a pas de critère de restauration au rechargement à tester.\n\nJe n'ai pas installé de paquet, ni poussé ni déployé quoi que ce soit, et je n'ai pas ajouté de pied de page légal. J'ai vérifié qu'il n'y a aucun `style=`, `onclick`, `<style>`, `innerHTML`, `fetch`, `localhost` ni URL externe dans les trois fichiers.",
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 7,
+  "permissionDenials": [],
+  "report": {
+    "status": "ok",
+    "summary": "App Calcul Peinture Pièces construite (index.html, style.css, app.js, test.mjs), sans dépendance ni ressource externe. node test.mjs affiche ok AC-1 à AC-4 et sort avec le code 0. Calcul : murs = 2×(L+l)×H − portes×2 m² − fenêtres×1,5 m² ; plafond = L×l ; pots = ceil(surface totale × couches × 1,1 / rendement). Les fonctions de calcul et de validation sont exportées et sans DOM ; le branchement page n'est exécuté que si document est défini. Choix de prudence : une ouverture égale à la surface des murs est acceptée (erreur seulement si elle la dépasse strictement) ; le nombre de portes/fenêtres vide vaut 0. Pas de stockage : l'app ne persiste rien, donc pas de critère de restauration à tester. Aucun paquet installé, rien poussé ni déployé, pied de page légal non ajouté.",
+    "blockers": []
+  },
+  "stderrTail": ""
+}

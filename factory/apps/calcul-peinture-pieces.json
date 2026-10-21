@@ -1,0 +1,60 @@
+{
+  "slug": "calcul-peinture-pieces",
+  "status": "live",
+  "attempts": 1,
+  "liveSince": "2026-10-21T10:18:03.799Z",
+  "history": [
+    {
+      "at": "2026-10-21T10:18:03.799Z",
+      "decision": "go",
+      "reasons": []
+    }
+  ],
+  "spec": {
+    "slug": "calcul-peinture-pieces",
+    "name": "Calcul Peinture Pièces",
+    "pitch": "Indique combien de pots de peinture acheter pour les murs et le plafond d'une pièce, avec une marge de 10 %.",
+    "problem": "Avant d'acheter de la peinture, on ne sait pas combien de pots prendre : on achète trop ou pas assez, et on perd du temps ou de l'argent.",
+    "audience": "Particuliers qui repeignent une pièce chez eux et veulent une estimation rapide, sans créer de compte.",
+    "features": [
+      "Saisir les dimensions de la pièce (longueur, largeur, hauteur) et obtenir le nombre de pots à acheter.",
+      "Déduire les portes (2 m² chacune) et les fenêtres (1,5 m² chacune) de la surface des murs.",
+      "Choisir le nombre de couches (1 à 4) et le rendement d'un pot (m² par pot) pour ajuster le calcul.",
+      "Afficher la surface totale à peindre et le nombre de pots, arrondi à l'unité supérieure avec une marge de 10 %."
+    ],
+    "acceptance": [
+      {
+        "id": "AC-1",
+        "given": "une pièce de 4 m de longueur, 3 m de largeur, 2,5 m de hauteur, 1 porte, 0 fenêtre, 2 couches et un rendement de 10 m² par pot",
+        "when": "l'utilisateur lance le calcul",
+        "then": "la surface totale affichée est 45 m² et le nombre de pots affiché est 10"
+      },
+      {
+        "id": "AC-2",
+        "given": "une pièce de 4 m × 3 m × 2,5 m, 0 porte, 2 fenêtres, 1 couche et un rendement de 10 m² par pot",
+        "when": "l'utilisateur lance le calcul",
+        "then": "la surface des murs à peindre est 32 m², la surface totale est 44 m² et le nombre de pots affiché est 5"
+      },
+      {
+        "id": "AC-3",
+        "given": "un champ de dimension vide ou égal à 0 (longueur, largeur ou hauteur)",
+        "when": "l'utilisateur lance le calcul",
+        "then": "aucun nombre de pots n'est affiché et un message d'erreur indique que les dimensions doivent être supérieures à 0"
+      },
+      {
+        "id": "AC-4",
+        "given": "une pièce dont la surface des portes et fenêtres dépasse la surface des murs",
+        "when": "l'utilisateur lance le calcul",
+        "then": "aucun nombre de pots n'est affiché et un message d'erreur indique que les ouvertures sont trop grandes pour la pièce"
+      }
+    ],
+    "outOfScope": [
+      "Calcul de la quantité de sous-couche, d'enduit, de rouleaux ou de bandes de masquage.",
+      "Prise en compte des formes de pièce non rectangulaires, des mansardes ou des murs cintrés.",
+      "Estimation du prix des pots, comparaison de marques ou achat en ligne.",
+      "Enregistrement de projets, comptes utilisateurs, synchronisation ou envoi de données vers un serveur.",
+      "Conseils sur le choix de la couleur, de la peinture ou sur la technique d'application."
+    ]
+  },
+  "measuredSince": "2026-10-21T10:18:03.843Z"
+}

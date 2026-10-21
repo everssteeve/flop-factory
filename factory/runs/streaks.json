@@ -24,5 +24,7 @@
   "build:dist/prompts/spec-calcul-carrelage-chutes.md": 0,
   "build:dist/prompts/build-calcul-carrelage-chutes.md": 0,
   "build:dist/prompts/spec-calcul-plants-massif.md": 0,
-  "build:dist/prompts/build-calcul-plants-massif.md": 0
+  "build:dist/prompts/build-calcul-plants-massif.md": 0,
+  "build:dist/prompts/spec-calcul-peinture-pieces.md": 0,
+  "build:dist/prompts/build-calcul-peinture-pieces.md": 0
 }

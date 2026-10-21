@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; media-src 'self' data:; frame-src 'none'; worker-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"><meta name="referrer" content="no-referrer">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Calcul Peinture Pièces</title>
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <main class="conteneur">
+    <h1>Calcul Peinture Pièces</h1>
+    <p>Indiquez les dimensions de la pièce pour savoir combien de pots acheter (marge de 10 %).</p>
+
+    <form id="form-calcul" class="formulaire" novalidate>
+      <fieldset class="groupe">
+        <legend>Dimensions de la pièce (en mètres)</legend>
+        <div class="champ">
+          <label for="longueur">Longueur</label>
+          <input id="longueur" name="longueur" type="text" inputmode="decimal" autocomplete="off">
+        </div>
+        <div class="champ">
+          <label for="largeur">Largeur</label>
+          <input id="largeur" name="largeur" type="text" inputmode="decimal" autocomplete="off">
+        </div>
+        <div class="champ">
+          <label for="hauteur">Hauteur</label>
+          <input id="hauteur" name="hauteur" type="text" inputmode="decimal" autocomplete="off">
+        </div>
+      </fieldset>
+
+      <fieldset class="groupe">
+        <legend>Ouvertures</legend>
+        <div class="champ">
+          <label for="portes">Nombre de portes (2 m² chacune)</label>
+          <input id="portes" name="portes" type="number" min="0" step="1" value="0">
+        </div>
+        <div class="champ">
+          <label for="fenetres">Nombre de fenêtres (1,5 m² chacune)</label>
+          <input id="fenetres" name="fenetres" type="number" min="0" step="1" value="0">
+        </div>
+      </fieldset>
+
+      <fieldset class="groupe">
+        <legend>Peinture</legend>
+        <div class="champ">
+          <label for="couches">Nombre de couches</label>
+          <select id="couches" name="couches">
+            <option value="1">1</option>
+            <option value="2" selected>2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+          </select>
+        </div>
+        <div class="champ">
+          <label for="rendement">Rendement d'un pot (m²)</label>
+          <input id="rendement" name="rendement" type="text" inputmode="decimal" value="10">
+        </div>
+      </fieldset>
+
+      <button type="submit" class="bouton">Calculer</button>
+    </form>
+
+    <p id="erreur" class="erreur" role="alert" hidden></p>
+
+    <section id="resultat" class="resultat" aria-live="polite" hidden>
+      <h2>Résultat</h2>
+      <ul id="lignes-resultat"></ul>
+    </section>
+  </main>
+</body>
+</html>
