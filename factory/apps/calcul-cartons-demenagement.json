@@ -1,0 +1,60 @@
+{
+  "slug": "calcul-cartons-demenagement",
+  "status": "live",
+  "attempts": 1,
+  "liveSince": "2026-10-22T10:18:47.767Z",
+  "history": [
+    {
+      "at": "2026-10-22T10:18:47.767Z",
+      "decision": "go",
+      "reasons": []
+    }
+  ],
+  "spec": {
+    "slug": "calcul-cartons-demenagement",
+    "name": "Cartons Déménagement",
+    "pitch": "Estimez en 30 secondes le nombre de cartons à prévoir pour votre déménagement, avec une marge de sécurité.",
+    "problem": "Avant un déménagement, on ne sait pas combien de cartons acheter ou commander : trop peu oblige à retourner en acheter, trop coûte de l'argent inutilement.",
+    "audience": "Particuliers qui préparent un déménagement et veulent estimer leurs besoins en cartons, sur mobile comme sur ordinateur, en français.",
+    "features": [
+      "Calculer le volume à déménager à partir de la surface, du nombre de pièces et du nombre de personnes.",
+      "Afficher le nombre de cartons nécessaires, la marge de sécurité et le total à prévoir.",
+      "Refuser les saisies incohérentes (surface nulle, aucune personne) avec un message clair en français."
+    ],
+    "acceptance": [
+      {
+        "id": "AC-1",
+        "given": "Surface 50 m², 2 pièces, 1 personne saisies",
+        "when": "L'utilisateur clique sur le bouton « Calculer »",
+        "then": "Le volume affiché est « 11,3 m³ », le nombre de cartons est 189, la marge de sécurité est 19 et le total à prévoir est 208"
+      },
+      {
+        "id": "AC-2",
+        "given": "Surface 100 m², 4 pièces, 3 personnes saisies",
+        "when": "L'utilisateur clique sur le bouton « Calculer »",
+        "then": "Le volume affiché est « 22,9 m³», le nombre de cartons est 382, la marge de sécurité est 39 et le total à prévoir est 421"
+      },
+      {
+        "id": "AC-3",
+        "given": "Surface vide ou égale à 0, autres champs valides",
+        "when": "L'utilisateur clique sur le bouton « Calculer »",
+        "then": "Le message « Indiquez une surface supérieure à 0 » est affiché et aucun nombre de cartons n'est affiché"
+      },
+      {
+        "id": "AC-4",
+        "given": "Nombre de personnes égal à 0, autres champs valides",
+        "when": "L'utilisateur clique sur le bouton « Calculer »",
+        "then": "Le message « Indiquez au moins une personne » est affiché et aucun nombre de cartons n'est affiché"
+      }
+    ],
+    "outOfScope": [
+      "Calcul du poids des cartons ou du coût du déménagement",
+      "Comparaison de devis ou de déménageurs, affiliation",
+      "Inventaire détaillé pièce par pièce ou meuble par meuble",
+      "Compte utilisateur, synchronisation serveur, partage des résultats",
+      "Conseil personnalisé sur le déménagement ou sur le choix d'un contrat",
+      "Calcul hors hypothèses forfaitaires : 0,2 m³ par m², 0,5 m³ par pièce, 0,3 m³ par personne, carton de 0,06 m³, marge de 10 %"
+    ]
+  },
+  "measuredSince": "2026-10-22T10:18:47.825Z"
+}

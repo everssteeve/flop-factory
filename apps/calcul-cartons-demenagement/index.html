@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; media-src 'self' data:; frame-src 'none'; worker-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"><meta name="referrer" content="no-referrer">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cartons Déménagement</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="page">
+    <h1>Cartons Déménagement</h1>
+    <p class="intro">Estimez en 30 secondes le nombre de cartons à prévoir pour votre déménagement, avec une marge de sécurité.</p>
+
+    <form id="form" class="form" novalidate>
+      <div class="field">
+        <label for="surface">Surface à déménager (m²)</label>
+        <input id="surface" name="surface" type="text" inputmode="decimal" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="pieces">Nombre de pièces</label>
+        <input id="pieces" name="pieces" type="text" inputmode="numeric" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="personnes">Nombre de personnes</label>
+        <input id="personnes" name="personnes" type="text" inputmode="numeric" autocomplete="off">
+      </div>
+      <button id="calculer" type="submit" class="btn">Calculer</button>
+    </form>
+
+    <p id="erreur" class="erreur" role="alert" hidden></p>
+
+    <section id="resultat" class="resultat" aria-live="polite" hidden>
+      <h2>Estimation</h2>
+      <dl class="stats">
+        <div class="stat"><dt>Volume à déménager</dt><dd id="out-volume"></dd></div>
+        <div class="stat"><dt>Cartons nécessaires</dt><dd id="out-cartons"></dd></div>
+        <div class="stat"><dt>Marge de sécurité</dt><dd id="out-marge"></dd></div>
+        <div class="stat"><dt>Total à prévoir</dt><dd id="out-total"></dd></div>
+      </dl>
+    </section>
+  </main>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

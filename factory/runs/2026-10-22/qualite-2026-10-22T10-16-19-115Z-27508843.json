@@ -1,0 +1,40 @@
+{
+  "runId": "qualite-2026-10-22T10-16-19-115Z-27508843",
+  "atelier": "qualite",
+  "prompt": "factory/prompts/guard-smoke.md",
+  "model": "haiku",
+  "capUsd": 0.435,
+  "remainingBeforeUsd": 0.87,
+  "usd": 0.00048085,
+  "status": "ok",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "tools": [
+    "Bash",
+    "Edit",
+    "Read"
+  ],
+  "missingTools": [
+    "Write",
+    "Glob",
+    "Grep"
+  ],
+  "resultText": "Le fichier `report.json` a été écrit dans le dossier courant avec le contenu demandé :\n\n```json\n{\"status\": \"ok\", \"summary\": \"session de contrôle démarrée\", \"blockers\": []}\n```\n\nAucune autre action n'a été exécutée.",
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 2,
+  "permissionDenials": [],
+  "report": {
+    "status": "ok",
+    "summary": "session de contrôle démarrée",
+    "blockers": []
+  },
+  "stderrTail": ""
+}

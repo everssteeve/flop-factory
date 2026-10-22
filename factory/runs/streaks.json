@@ -26,5 +26,7 @@
   "build:dist/prompts/spec-calcul-plants-massif.md": 0,
   "build:dist/prompts/build-calcul-plants-massif.md": 0,
   "build:dist/prompts/spec-calcul-peinture-pieces.md": 0,
-  "build:dist/prompts/build-calcul-peinture-pieces.md": 0
+  "build:dist/prompts/build-calcul-peinture-pieces.md": 0,
+  "build:dist/prompts/spec-calcul-cartons-demenagement.md": 0,
+  "build:dist/prompts/build-calcul-cartons-demenagement.md": 0
 }

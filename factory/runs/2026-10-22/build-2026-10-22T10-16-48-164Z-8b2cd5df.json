@@ -1,0 +1,46 @@
+{
+  "runId": "build-2026-10-22T10-16-48-164Z-8b2cd5df",
+  "atelier": "build",
+  "prompt": "dist/prompts/build-calcul-cartons-demenagement.md",
+  "model": "haiku",
+  "capUsd": 1.3033,
+  "remainingBeforeUsd": 2.6066,
+  "usd": 0.008634184999999999,
+  "status": "ok",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "tools": [
+    "Bash",
+    "Edit",
+    "Read"
+  ],
+  "missingTools": [
+    "Write",
+    "Glob",
+    "Grep"
+  ],
+  "resultText": "L'app est construite dans le dossier courant. `node test.mjs` affiche `ok AC-1` à `ok AC-4` et sort avec le code 0. J'ai écrit `report.json` avec `\"status\": \"ok\"` et aucun blocage.\n\n**Fichiers produits**\n- `index.html` : titre « Cartons Déménagement », viewport, lien vers `style.css`, `app.js` en module. Aucun script ni style en ligne, aucune ressource externe, aucun attribut `style` ni `on*`.\n- `style.css` : mise en page fluide, cibles tactiles d'au moins 44 px, police système.\n- `app.js` : fonctions pures exportées (`traiterSaisie`, `valider`, `calculer`, `formaterResultat`). Le branchement DOM n'est activé que si `document` existe, et il n'utilise que `textContent` et `addEventListener`.\n- `test.mjs` : appelle ces fonctions avec de vraies valeurs pour chaque critère, et vérifie la structure de `index.html`.\n\n**Calcul**\n- Volume = 0,2 × surface + 0,5 × pièces + 0,3 × personnes, arrondi à 2 décimales.\n- Cartons = partie entière supérieure de volume / 0,06.\n- Marge = partie entière supérieure de 10 % des cartons.\n- Total = cartons + marge.\n- Vérifié à la main sur AC-1 (11,3 m³, 189, 19, 208) et AC-2 (22,9 m³, 382, 39, 421).\n\n**Points à connaître**\n- Le critère « saisie invalide 0 ou 31 » de la consigne ne correspond à aucun critère de `spec.json`. Je n'ai donc pas ajouté de borne de 31.\n- Aucun critère ne demande de stockage ni de relecture au chargement. Je n'ai pas ajouté de persistance, et `test.mjs` n'utilise pas de faux stockage.\n- J'ai ajouté une validation du nombre de pièces (entier ≥ 0), qui n'est pas dans la spec.\n- Je n'ai pas pu observer la console d'un navigateur, car je n'ai rien installé. L'absence d'erreur au chargement repose sur le code, pas sur un test en navigateur.\n\nJe n'ai pas modifié `spec.json`, je n'ai rien installé, poussé ni déployé, et je n'ai pas ajouté de pied de page légal. Je n'ai pas non plus lu les fichiers `.env`.",
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 6,
+  "permissionDenials": [],
+  "report": {
+    "status": "ok",
+    "summary": "App statique « Cartons Déménagement » construite sans dépendance : index.html (titre, viewport, style.css, app.js en module, aucune ressource externe ni code en ligne), style.css (mise en page fluide, cibles tactiles 44 px, pas de style inline), app.js (fonctions pures exportées traiterSaisie, valider, calculer, formaterResultat ; branchement DOM seulement si document est défini, textContent uniquement) et test.mjs. `node test.mjs` affiche ok AC-1, ok AC-2, ok AC-3, ok AC-4 et sort avec le code 0. Formules : volume = 0,2·surface + 0,5·pièces + 0,3·personnes (arrondi 2 décimales), cartons = plafond(volume / 0,06), marge = plafond(10 % des cartons), total = cartons + marge ; vérifié à la main sur AC-1 (11,3 m³ / 189 / 19 / 208) et AC-2 (22,9 m³ / 382 / 39 / 421). spec.json non modifié, aucun paquet installé, rien poussé ni déployé, pied de page légal non ajouté.",
+    "blockers": [],
+    "notes": [
+      "Aucun critère ne demande de stockage ni de relecture au chargement : je n'ai donc pas ajouté de persistance, et test.mjs ne teste pas de faux stockage.",
+      "Le libellé « saisie invalide 0 ou 31 » mentionné dans la consigne ne correspond à aucun critère de spec.json (seuls surface = 0 et personnes = 0 sont spécifiés) : aucune borne de 31 n'a été ajoutée.",
+      "Validation ajoutée au-delà de la spec pour le nombre de pièces : doit être un entier ≥ 0 (message « Indiquez un nombre de pièces (0 ou plus) »). Les personnes doivent être un entier ≥ 1 et la surface un nombre > 0.",
+      "La console du navigateur n'a pas été observée (aucun navigateur ni dépendance installés) ; l'absence d'erreur au chargement repose sur le fait que le module ne touche au DOM que si document existe et que la page ne contient aucun code en ligne."
+    ]
+  },
+  "stderrTail": ""
+}
