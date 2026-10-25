@@ -39,6 +39,26 @@
       "slug": "calcul-boissons-soiree",
       "idea": "Calculer le nombre de bouteilles de vin pour une soirée entre amis : on saisit le nombre d'invités, la durée, la part de non-buveurs et les autres boissons proposées, l'app donne un nombre de bouteilles arrondi à l'unité supérieure.",
       "evidence": "Calculateurs de boissons et guides pratiques répondant à « combien de bouteilles de vin pour X personnes », souvent avec des ratios qui divergent selon les sources."
+    },
+    {
+      "slug": "calcul-rouleaux-papier-peint",
+      "idea": "Calculer le nombre de rouleaux de papier peint à acheter pour une pièce : on saisit la hauteur et le périmètre des murs, la largeur du rouleau et la longueur de rouleau, les ouvertures à déduire, puis l'app donne le nombre de lés et de rouleaux avec une marge de chute arrondie à l'entier supérieur. Pour les personnes qui décorent leur logement.",
+      "evidence": "Plusieurs guides de bricolage et calculateurs en ligne expliquent la méthode par lés ou par surface, avec une marge de chute de 10 à 15 % pour les motifs."
+    },
+    {
+      "slug": "calcul-terreau-bacs-pots",
+      "idea": "Calculer la quantité de terreau à acheter pour des bacs, jardinières ou pots : on saisit la forme du contenant (rectangulaire, rond ou évasé), ses dimensions, une marge de tassement, et l'app donne le volume en litres et le nombre de sacs de la taille choisie, arrondi à l'entier supérieur. Pour les jardiniers amateurs et les balcons.",
+      "evidence": "Des guides de jardinage et des calculateurs en ligne donnent les formules de volume pour bac surélevé, pot rond et pot évasé, avec une majoration de 15 % pour le tassement."
+    },
+    {
+      "slug": "calcul-semences-gazon",
+      "idea": "Calculer combien de sachets de semences de gazon acheter : on saisit la surface de la pelouse (rectangle ou plusieurs zones), la dose en grammes par mètre carré indiquée sur l'emballage, et le poids du sachet, puis l'app donne la quantité totale et le nombre de sachets à prévoir, avec une marge optionnelle. Pour les personnes qui créent ou regarnissent une pelouse.",
+      "evidence": "Des jardineries et des calculateurs en ligne expliquent qu'il faut multiplier la surface par la dose conseillée, qui varie selon le mélange de graines et le type de semis."
+    },
+    {
+      "slug": "calcul-parpaings-mur",
+      "idea": "Estimer le nombre de parpaings ou de briques pour un mur : on saisit la longueur et la hauteur, les dimensions du bloc, l'épaisseur du joint et les ouvertures à retrancher, puis l'app donne le nombre de blocs avec une marge de casse en pourcentage réglable, arrondi à l'unité supérieure. Pour les bricoleurs qui montent un petit mur de clôture ou de séparation.",
+      "evidence": "Plusieurs calculateurs en ligne et guides de construction donnent la même formule : surface nette du mur divisée par la surface du bloc joint compris, avec une marge de casse."
     }
   ]
 }

@@ -1,0 +1,40 @@
+{
+  "runId": "qualite-2026-10-25T09-51-39-714Z-aa80fd80",
+  "atelier": "qualite",
+  "prompt": "factory/prompts/guard-smoke.md",
+  "model": "haiku",
+  "capUsd": 0.435,
+  "remainingBeforeUsd": 0.87,
+  "usd": 0.000952275,
+  "status": "ok",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "tools": [
+    "Bash",
+    "Edit",
+    "Read"
+  ],
+  "missingTools": [
+    "Write",
+    "Glob",
+    "Grep"
+  ],
+  "resultText": "Le fichier `report.json` est écrit dans `/home/runner/work/_temp/ff-work/guard-smoke/` avec le contenu demandé :\n\n```json\n{\"status\": \"ok\", \"summary\": \"session de contrôle démarrée\", \"blockers\": []}\n```\n\nLe premier essai via le shell a échoué à cause du sandbox (`apply-seccomp: ... Permission denied`). Ce n'était pas un refus de règle. J'ai donc utilisé l'outil d'édition, sans contourner le sandbox. Je n'ai relu le fichier ni exécuté d'autre action.",
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 3,
+  "permissionDenials": [],
+  "report": {
+    "status": "ok",
+    "summary": "session de contrôle démarrée",
+    "blockers": []
+  },
+  "stderrTail": ""
+}

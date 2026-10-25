@@ -1,5 +1,5 @@
 {
-  "qualite:factory/prompts/guard-smoke.md": 2,
+  "qualite:factory/prompts/guard-smoke.md": 0,
   "build:factory/prompts/socle-hello.md": 0,
   "build:dist/prompts/spec-convertisseur-cuisine.md": 0,
   "build:dist/prompts/build-convertisseur-cuisine.md": 0,
@@ -28,5 +28,7 @@
   "build:dist/prompts/spec-calcul-peinture-pieces.md": 0,
   "build:dist/prompts/build-calcul-peinture-pieces.md": 0,
   "build:dist/prompts/spec-calcul-cartons-demenagement.md": 0,
-  "build:dist/prompts/build-calcul-cartons-demenagement.md": 0
+  "build:dist/prompts/build-calcul-cartons-demenagement.md": 0,
+  "build:dist/prompts/spec-calcul-boissons-soiree.md": 0,
+  "build:dist/prompts/build-calcul-boissons-soiree.md": 1
 }

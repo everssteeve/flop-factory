@@ -1,0 +1,15 @@
+{
+  "slug": "calcul-boissons-soiree",
+  "status": "building",
+  "attempts": 1,
+  "liveSince": null,
+  "history": [
+    {
+      "at": "2026-10-25T09:54:20.851Z",
+      "decision": "retry",
+      "reasons": [
+        "atelier build : run failed"
+      ]
+    }
+  ]
+}
