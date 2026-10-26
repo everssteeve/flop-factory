@@ -1,0 +1,40 @@
+{
+  "runId": "qualite-2026-10-26T11-10-54-502Z-e27e3485",
+  "atelier": "qualite",
+  "prompt": "factory/prompts/guard-smoke.md",
+  "model": "haiku",
+  "capUsd": 0.435,
+  "remainingBeforeUsd": 0.87,
+  "usd": 0.000888515,
+  "status": "ok",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "tools": [
+    "Bash",
+    "Edit",
+    "Read"
+  ],
+  "missingTools": [
+    "Write",
+    "Glob",
+    "Grep"
+  ],
+  "resultText": "Le fichier `report.json` est écrit dans le dossier courant avec le contenu demandé :\n\n```json\n{\"status\": \"ok\", \"summary\": \"session de contrôle démarrée\", \"blockers\": []}\n```\n\nLe shell Bash a échoué au démarrage (erreur seccomp du sandbox : `nested userns is capability-restricted`). Je n'ai pas contourné cette restriction. J'ai donc créé le fichier avec l'outil d'édition, puis je n'ai pas pu le relire via Bash. Aucune autre action n'a été exécutée.",
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 3,
+  "permissionDenials": [],
+  "report": {
+    "status": "ok",
+    "summary": "session de contrôle démarrée",
+    "blockers": []
+  },
+  "stderrTail": ""
+}
