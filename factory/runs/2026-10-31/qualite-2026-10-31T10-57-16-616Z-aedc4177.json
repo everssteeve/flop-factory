@@ -1,0 +1,36 @@
+{
+  "runId": "qualite-2026-10-31T10-57-16-616Z-aedc4177",
+  "atelier": "qualite",
+  "prompt": "factory/prompts/guard-smoke.md",
+  "model": "haiku",
+  "capUsd": 0.435,
+  "remainingBeforeUsd": 0.87,
+  "usd": 0.000925155,
+  "status": "failed",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "tools": [
+    "Bash",
+    "Edit",
+    "Read"
+  ],
+  "missingTools": [
+    "Write",
+    "Glob",
+    "Grep"
+  ],
+  "resultText": "Je n'ai pas pu écrire `report.json`. Les deux tentatives ont échoué avant l'écriture, avec la même erreur du sandbox : `apply-seccomp: write /proc/self/setgroups (nested userns is capability-restricted; caller must provide CAP_SYS_ADMIN): Permission denied`.\n\nJe n'ai pas désactivé le sandbox pour contourner ce blocage, car ce n'est pas une action que tu m'as demandée. Le fichier n'existe donc pas dans `/home/runner/work/_temp/ff-work/guard-smoke`.\n\nLe contenu prévu était :\n\n```json\n{\"status\": \"ok\", \"summary\": \"session de contrôle démarrée\", \"blockers\": []}\n```\n\nIl faut relancer la session dans un environnement où l'écriture de fichiers via le shell est autorisée. Si la cause persiste, le sandbox doit être corrigé avant toute nouvelle tentative.",
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 3,
+  "permissionDenials": [],
+  "report": null,
+  "stderrTail": ""
+}
