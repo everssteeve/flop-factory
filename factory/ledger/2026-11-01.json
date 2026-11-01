@@ -1,0 +1,21 @@
+{
+  "day": "2026-11-01",
+  "entries": [
+    {
+      "runId": "qualite-2026-11-01T11-52-30-439Z-1d417cc7",
+      "atelier": "qualite",
+      "model": "haiku",
+      "usd": 0.00082439,
+      "status": "ok",
+      "at": "2026-11-01T11:52:30.439Z"
+    },
+    {
+      "runId": "build-2026-11-01T11-52-36-404Z-dfd223a5",
+      "atelier": "build",
+      "model": "sonnet",
+      "usd": 0.0463132,
+      "status": "failed",
+      "at": "2026-11-01T11:52:36.404Z"
+    }
+  ]
+}

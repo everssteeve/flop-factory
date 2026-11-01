@@ -1,7 +1,7 @@
 {
   "slug": "calcul-boissons-soiree",
-  "status": "building",
-  "attempts": 2,
+  "status": "abandoned",
+  "attempts": 3,
   "liveSince": null,
   "history": [
     {
@@ -16,6 +16,13 @@
       "decision": "retry",
       "reasons": [
         "atelier build : run failed"
+      ]
+    },
+    {
+      "at": "2026-11-01T11:53:12.972Z",
+      "decision": "abandon",
+      "reasons": [
+        "atelier spec : run failed"
       ]
     }
   ]
