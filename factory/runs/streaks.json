@@ -1,5 +1,5 @@
 {
-  "qualite:factory/prompts/guard-smoke.md": 0,
+  "qualite:factory/prompts/guard-smoke.md": 1,
   "build:factory/prompts/socle-hello.md": 0,
   "build:dist/prompts/spec-convertisseur-cuisine.md": 0,
   "build:dist/prompts/build-convertisseur-cuisine.md": 0,
@@ -15,7 +15,7 @@
   "build:dist/prompts/build-compteur-scores-jeux.md": 0,
   "build:dist/prompts/spec-calcul-allure-course.md": 0,
   "build:dist/prompts/build-calcul-allure-course.md": 0,
-  "cerveau:factory/prompts/brain.md": 0,
+  "cerveau:factory/prompts/brain.md": 1,
   "cerveau:dist/prompts/bench-spec-checklist-valise.md": 0,
   "cerveau:dist/prompts/bench-build-checklist-valise.md": 0,
   "cerveau:factory/prompts/review.md": 0,

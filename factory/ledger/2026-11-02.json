@@ -1,0 +1,21 @@
+{
+  "day": "2026-11-02",
+  "entries": [
+    {
+      "runId": "qualite-2026-11-02T13-34-29-655Z-708d40c9",
+      "atelier": "qualite",
+      "model": "haiku",
+      "usd": 0.0010794,
+      "status": "failed",
+      "at": "2026-11-02T13:34:29.655Z"
+    },
+    {
+      "runId": "cerveau-2026-11-02T13-34-38-075Z-ddf9534c",
+      "atelier": "cerveau",
+      "model": "sonnet",
+      "usd": 0.0430194,
+      "status": "failed",
+      "at": "2026-11-02T13:34:38.075Z"
+    }
+  ]
+}

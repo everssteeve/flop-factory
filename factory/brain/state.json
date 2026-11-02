@@ -1,5 +1,5 @@
 {
-  "lastProposalAt": "2026-10-17T17:56:10.913Z",
+  "lastProposalAt": "2026-11-02T13:35:04.229Z",
   "current": {
     "id": "2026-10-17-717a70db4c",
     "status": "kept",
@@ -26,6 +26,13 @@
       "decision": "kept",
       "motif": "revue : AC-n",
       "reason": "taux de go 0.63 (référence 0.67)"
+    },
+    {
+      "id": null,
+      "at": "2026-11-02T13:35:04.229Z",
+      "decision": "rejected",
+      "motif": "",
+      "reason": "run failed"
     }
   ]
 }
