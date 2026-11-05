@@ -1,0 +1,36 @@
+{
+  "runId": "qualite-2026-11-05T13-15-58-143Z-b886c889",
+  "atelier": "qualite",
+  "prompt": "factory/prompts/guard-smoke.md",
+  "model": "haiku",
+  "capUsd": 0.435,
+  "remainingBeforeUsd": 0.87,
+  "usd": 0.0009356200000000001,
+  "status": "failed",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "tools": [
+    "Bash",
+    "Edit",
+    "Read"
+  ],
+  "missingTools": [
+    "Write",
+    "Glob",
+    "Grep"
+  ],
+  "resultText": "Je n'ai pas pu écrire `report.json`. La commande d'écriture a échoué deux fois avec la même erreur du sandbox : `apply-seccomp: write /proc/self/setgroups (nested userns is capability-restricted; caller must provide CAP_SYS_ADMIN): Permission denied`.\n\nJe n'ai pas contourné le sandbox (je n'ai pas relancé la commande hors sandbox), et je n'ai aucun autre outil capable de créer un fichier. Aucun fichier n'a donc été créé ou modifié.\n\nLe contenu demandé était :\n\n```json\n{\"status\": \"ok\", \"summary\": \"session de contrôle démarrée\", \"blockers\": []}\n```\n\nLe statut réel de ce contrôle est donc un échec : le fichier n'existe pas. Il faudra relancer la session dans un environnement où l'écriture de fichiers est autorisée, ou écrire ce fichier manuellement.",
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 3,
+  "permissionDenials": [],
+  "report": null,
+  "stderrTail": ""
+}
