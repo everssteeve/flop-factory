@@ -1,5 +1,5 @@
 {
-  "lastProposalAt": "2026-11-02T13:35:04.229Z",
+  "lastProposalAt": "2026-11-07T11:49:55.905Z",
   "current": {
     "id": "2026-10-17-717a70db4c",
     "status": "kept",
@@ -33,6 +33,13 @@
       "decision": "rejected",
       "motif": "",
       "reason": "run failed"
+    },
+    {
+      "id": null,
+      "at": "2026-11-07T11:49:55.905Z",
+      "decision": "rejected",
+      "motif": "atelier build : run failed",
+      "reason": "app d'essai refusée : pas de verdict de la porte ; pas de revue"
     }
   ]
 }

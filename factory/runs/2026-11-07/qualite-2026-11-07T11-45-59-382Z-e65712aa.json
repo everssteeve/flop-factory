@@ -1,0 +1,40 @@
+{
+  "runId": "qualite-2026-11-07T11-45-59-382Z-e65712aa",
+  "atelier": "qualite",
+  "prompt": "factory/prompts/guard-smoke.md",
+  "model": "haiku",
+  "capUsd": 0.435,
+  "remainingBeforeUsd": 0.87,
+  "usd": 0.00088792,
+  "status": "ok",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "tools": [
+    "Bash",
+    "Edit",
+    "Read"
+  ],
+  "missingTools": [
+    "Write",
+    "Glob",
+    "Grep"
+  ],
+  "resultText": "Le fichier `report.json` a été écrit dans `/home/runner/work/_temp/ff-work/guard-smoke/` avec le contenu demandé :\n\n```json\n{\"status\": \"ok\", \"summary\": \"session de contrôle démarrée\", \"blockers\": []}\n```\n\nLa première tentative via le shell a échoué à cause d'une erreur du sandbox (`apply-seccomp: ... Permission denied`), et non d'un hook `[Flop Factory]` ou `[Hypervibe]`. Je n'ai pas contourné le sandbox : j'ai créé le fichier avec l'outil d'édition. Je n'ai pas relu le contenu après écriture, et aucune autre action n'a été exécutée.",
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 3,
+  "permissionDenials": [],
+  "report": {
+    "status": "ok",
+    "summary": "session de contrôle démarrée",
+    "blockers": []
+  },
+  "stderrTail": ""
+}

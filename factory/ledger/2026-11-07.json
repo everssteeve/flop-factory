@@ -1,0 +1,53 @@
+{
+  "day": "2026-11-07",
+  "entries": [
+    {
+      "runId": "qualite-2026-11-07T11-45-59-382Z-e65712aa",
+      "atelier": "qualite",
+      "model": "haiku",
+      "usd": 0.00088792,
+      "status": "ok",
+      "at": "2026-11-07T11:45:59.382Z"
+    },
+    {
+      "runId": "build-2026-11-07T11-46-06-303Z-1aefec1a",
+      "atelier": "build",
+      "model": "sonnet",
+      "usd": 0.0750709,
+      "status": "ok",
+      "at": "2026-11-07T11:46:06.303Z"
+    },
+    {
+      "runId": "build-2026-11-07T11-46-41-150Z-a6cdb9a1",
+      "atelier": "build",
+      "model": "sonnet",
+      "usd": 0.1259736,
+      "status": "failed",
+      "at": "2026-11-07T11:46:41.150Z"
+    },
+    {
+      "runId": "cerveau-2026-11-07T11-47-45-579Z-fc4ca8a2",
+      "atelier": "cerveau",
+      "model": "sonnet",
+      "usd": 0.03649669999999999,
+      "status": "ok",
+      "at": "2026-11-07T11:47:45.579Z"
+    },
+    {
+      "runId": "cerveau-2026-11-07T11-48-01-527Z-38152259",
+      "atelier": "cerveau",
+      "model": "haiku",
+      "usd": 0.005152609999999999,
+      "status": "ok",
+      "at": "2026-11-07T11:48:01.527Z"
+    },
+    {
+      "runId": "cerveau-2026-11-07T11-48-33-639Z-3874afec",
+      "atelier": "cerveau",
+      "model": "haiku",
+      "usd": 0.011430454999999999,
+      "status": "failed",
+      "at": "2026-11-07T11:48:33.639Z"
+    }
+  ]
+}

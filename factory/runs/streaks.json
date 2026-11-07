@@ -15,9 +15,9 @@
   "build:dist/prompts/build-compteur-scores-jeux.md": 0,
   "build:dist/prompts/spec-calcul-allure-course.md": 0,
   "build:dist/prompts/build-calcul-allure-course.md": 0,
-  "cerveau:factory/prompts/brain.md": 1,
+  "cerveau:factory/prompts/brain.md": 0,
   "cerveau:dist/prompts/bench-spec-checklist-valise.md": 0,
-  "cerveau:dist/prompts/bench-build-checklist-valise.md": 0,
+  "cerveau:dist/prompts/bench-build-checklist-valise.md": 1,
   "cerveau:factory/prompts/review.md": 0,
   "build:dist/prompts/spec-roue-corvees.md": 0,
   "build:dist/prompts/build-roue-corvees.md": 0,
@@ -32,5 +32,5 @@
   "build:dist/prompts/spec-calcul-boissons-soiree.md": 1,
   "build:dist/prompts/build-calcul-boissons-soiree.md": 2,
   "build:dist/prompts/spec-calcul-rouleaux-papier-peint.md": 0,
-  "build:dist/prompts/build-calcul-rouleaux-papier-peint.md": 2
+  "build:dist/prompts/build-calcul-rouleaux-papier-peint.md": 3
 }
