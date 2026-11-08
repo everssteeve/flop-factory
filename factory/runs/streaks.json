@@ -32,5 +32,7 @@
   "build:dist/prompts/spec-calcul-boissons-soiree.md": 1,
   "build:dist/prompts/build-calcul-boissons-soiree.md": 2,
   "build:dist/prompts/spec-calcul-rouleaux-papier-peint.md": 0,
-  "build:dist/prompts/build-calcul-rouleaux-papier-peint.md": 3
+  "build:dist/prompts/build-calcul-rouleaux-papier-peint.md": 3,
+  "build:dist/prompts/spec-calcul-terreau-bacs-pots.md": 0,
+  "build:dist/prompts/build-calcul-terreau-bacs-pots.md": 1
 }

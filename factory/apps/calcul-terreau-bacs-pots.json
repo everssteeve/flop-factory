@@ -1,0 +1,15 @@
+{
+  "slug": "calcul-terreau-bacs-pots",
+  "status": "building",
+  "attempts": 1,
+  "liveSince": null,
+  "history": [
+    {
+      "at": "2026-11-08T12:00:30.049Z",
+      "decision": "retry",
+      "reasons": [
+        "atelier build : run failed"
+      ]
+    }
+  ]
+}
