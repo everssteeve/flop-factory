@@ -1,0 +1,36 @@
+{
+  "runId": "qualite-2026-11-10T13-30-43-460Z-d424d7d3",
+  "atelier": "qualite",
+  "prompt": "factory/prompts/guard-smoke.md",
+  "model": "haiku",
+  "capUsd": 0.435,
+  "remainingBeforeUsd": 0.87,
+  "usd": 0.0010095249999999998,
+  "status": "failed",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "tools": [
+    "Bash",
+    "Edit",
+    "Read"
+  ],
+  "missingTools": [
+    "Write",
+    "Glob",
+    "Grep"
+  ],
+  "resultText": "Je n'ai pas pu écrire `report.json`. Les deux tentatives Bash ont échoué au lancement du sandbox, avant d'exécuter la commande :\n\n```\napply-seccomp: write /proc/self/setgroups (nested userns is capability-restricted; caller must provide CAP_SYS_ADMIN): Permission denied\n```\n\nJe n'ai pas désactivé le sandbox (`dangerouslyDisableSandbox`) pour contourner l'erreur, et je n'ai pas tenté d'autres actions, comme demandé. L'outil Edit ne crée que des fichiers existants, donc il ne peut pas non plus produire le fichier.\n\nLe contenu attendu est :\n\n```json\n{\"status\": \"ok\", \"summary\": \"session de contrôle démarrée\", \"blockers\": []}\n```\n\nIl faut que l'environnement d'exécution corrige le sandbox (user namespaces / seccomp), ou qu'un opérateur écrive ce fichier à la main. Je n'ai donc pas pu terminer la session de contrôle comme prévu.",
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 3,
+  "permissionDenials": [],
+  "report": null,
+  "stderrTail": ""
+}
