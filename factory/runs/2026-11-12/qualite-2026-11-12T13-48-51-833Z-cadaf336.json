@@ -1,0 +1,36 @@
+{
+  "runId": "qualite-2026-11-12T13-48-51-833Z-cadaf336",
+  "atelier": "qualite",
+  "prompt": "factory/prompts/guard-smoke.md",
+  "model": "haiku",
+  "capUsd": 0.435,
+  "remainingBeforeUsd": 0.87,
+  "usd": 0.0009515050000000001,
+  "status": "failed",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "tools": [
+    "Bash",
+    "Edit",
+    "Read"
+  ],
+  "missingTools": [
+    "Write",
+    "Glob",
+    "Grep"
+  ],
+  "resultText": "Je n'ai pas pu écrire `report.json` : le shell est bloqué par la sandbox avant toute écriture, et il n'existe pas d'autre outil qui crée un fichier.\n\n- **Tentative 1** : `cat > report.json` a échoué avec `apply-seccomp: write /proc/self/setgroups (nested userns is capability-restricted; caller must provide CAP_SYS_ADMIN): Permission denied`.\n- **Tentative 2** : une écriture par `printf` a échoué de la même façon.\n\nJe n'ai pas désactivé la sandbox pour contourner cette erreur. Le contenu voulu était :\n\n```json\n{\"status\": \"ok\", \"summary\": \"session de contrôle démarrée\", \"blockers\": []}\n```\n\nLe fichier doit donc être créé par l'environnement, ou la sandbox doit être corrigée avant une nouvelle exécution. Aucune autre action n'a été effectuée.",
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 3,
+  "permissionDenials": [],
+  "report": null,
+  "stderrTail": ""
+}
