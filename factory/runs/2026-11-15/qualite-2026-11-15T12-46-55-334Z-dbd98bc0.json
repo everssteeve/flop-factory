@@ -1,0 +1,40 @@
+{
+  "runId": "qualite-2026-11-15T12-46-55-334Z-dbd98bc0",
+  "atelier": "qualite",
+  "prompt": "factory/prompts/guard-smoke.md",
+  "model": "haiku",
+  "capUsd": 0.435,
+  "remainingBeforeUsd": 0.87,
+  "usd": 0.0008127750000000001,
+  "status": "ok",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "tools": [
+    "Bash",
+    "Edit",
+    "Read"
+  ],
+  "missingTools": [
+    "Write",
+    "Glob",
+    "Grep"
+  ],
+  "resultText": "Le fichier `report.json` est écrit dans le dossier courant avec le contenu demandé :\n\n```json\n{\"status\": \"ok\", \"summary\": \"session de contrôle démarrée\", \"blockers\": []}\n```\n\nLa première tentative via Bash a échoué à cause du sandbox (erreur `apply-seccomp`, sans lien avec une règle Flop Factory). J'ai donc créé le fichier avec l'outil Edit, sans contourner le sandbox. Aucune autre action n'a été exécutée.",
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 3,
+  "permissionDenials": [],
+  "report": {
+    "status": "ok",
+    "summary": "session de contrôle démarrée",
+    "blockers": []
+  },
+  "stderrTail": ""
+}
