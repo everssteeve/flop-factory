@@ -1,0 +1,37 @@
+{
+  "day": "2026-11-16",
+  "entries": [
+    {
+      "runId": "qualite-2026-11-16T13-42-57-126Z-1402231b",
+      "atelier": "qualite",
+      "model": "haiku",
+      "usd": 0.00092359,
+      "status": "failed",
+      "at": "2026-11-16T13:42:57.126Z"
+    },
+    {
+      "runId": "cerveau-2026-11-16T13-43-04-731Z-72391c68",
+      "atelier": "cerveau",
+      "model": "sonnet",
+      "usd": 0.040544,
+      "status": "ok",
+      "at": "2026-11-16T13:43:04.731Z"
+    },
+    {
+      "runId": "cerveau-2026-11-16T13-43-20-613Z-8681d01d",
+      "atelier": "cerveau",
+      "model": "haiku",
+      "usd": 0.00474072,
+      "status": "ok",
+      "at": "2026-11-16T13:43:20.613Z"
+    },
+    {
+      "runId": "cerveau-2026-11-16T13-43-50-691Z-e39b4b5e",
+      "atelier": "cerveau",
+      "model": "haiku",
+      "usd": 0.01482471,
+      "status": "failed",
+      "at": "2026-11-16T13:43:50.691Z"
+    }
+  ]
+}
