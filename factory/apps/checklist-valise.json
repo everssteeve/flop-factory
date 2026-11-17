@@ -1,6 +1,6 @@
 {
   "slug": "checklist-valise",
-  "status": "live",
+  "status": "killed",
   "attempts": 2,
   "liveSince": "2026-10-17T14:26:11.780Z",
   "history": [
@@ -17,6 +17,13 @@
       "at": "2026-10-17T14:26:11.780Z",
       "decision": "go",
       "reasons": []
+    },
+    {
+      "at": "2026-11-17T14:31:11.160Z",
+      "decision": "kill",
+      "reasons": [
+        "0 visiteur(s) l'ont utilisée en 30 jours (minimum 20)"
+      ]
     }
   ],
   "spec": {
@@ -77,5 +84,11 @@
       "Envoi de données vers un serveur ou un service tiers"
     ]
   },
-  "measuredSince": "2026-10-17T17:10:08.160Z"
+  "measuredSince": "2026-10-17T17:10:08.160Z",
+  "verdictJ30": {
+    "at": "2026-11-17T14:31:11.160Z",
+    "used": 0,
+    "decision": "kill"
+  },
+  "killedAt": "2026-11-17T14:31:11.160Z"
 }

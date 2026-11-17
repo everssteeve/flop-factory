@@ -1,6 +1,6 @@
 {
   "slug": "convertisseur-cuisine",
-  "status": "live",
+  "status": "killed",
   "attempts": 3,
   "liveSince": "2026-10-17T13:57:29.241Z",
   "history": [
@@ -23,6 +23,13 @@
       "at": "2026-10-17T13:57:29.241Z",
       "decision": "go",
       "reasons": []
+    },
+    {
+      "at": "2026-11-17T14:31:11.160Z",
+      "decision": "kill",
+      "reasons": [
+        "0 visiteur(s) l'ont utilisée en 30 jours (minimum 20)"
+      ]
     }
   ],
   "spec": {
@@ -94,5 +101,11 @@
       "Conseils de cuisson ou de nutrition"
     ]
   },
-  "measuredSince": "2026-10-17T17:10:08.160Z"
+  "measuredSince": "2026-10-17T17:10:08.160Z",
+  "verdictJ30": {
+    "at": "2026-11-17T14:31:11.160Z",
+    "used": 0,
+    "decision": "kill"
+  },
+  "killedAt": "2026-11-17T14:31:11.160Z"
 }

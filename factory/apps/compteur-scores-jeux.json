@@ -1,6 +1,6 @@
 {
   "slug": "compteur-scores-jeux",
-  "status": "live",
+  "status": "killed",
   "attempts": 1,
   "liveSince": "2026-10-17T17:30:31.076Z",
   "history": [
@@ -8,6 +8,13 @@
       "at": "2026-10-17T17:30:31.076Z",
       "decision": "go",
       "reasons": []
+    },
+    {
+      "at": "2026-11-17T14:31:11.160Z",
+      "decision": "kill",
+      "reasons": [
+        "0 visiteur(s) l'ont utilisée en 30 jours (minimum 20)"
+      ]
     }
   ],
   "spec": {
@@ -69,5 +76,11 @@
       "Minuteur, dés virtuels ou calcul automatique des points selon les cartes"
     ]
   },
-  "measuredSince": "2026-10-17T17:30:31.131Z"
+  "measuredSince": "2026-10-17T17:30:31.131Z",
+  "verdictJ30": {
+    "at": "2026-11-17T14:31:11.160Z",
+    "used": 0,
+    "decision": "kill"
+  },
+  "killedAt": "2026-11-17T14:31:11.160Z"
 }

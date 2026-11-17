@@ -1,6 +1,6 @@
 {
   "slug": "minuteur-pomodoro",
-  "status": "live",
+  "status": "killed",
   "attempts": 1,
   "liveSince": "2026-10-17T17:10:08.115Z",
   "history": [
@@ -8,6 +8,13 @@
       "at": "2026-10-17T17:10:08.115Z",
       "decision": "go",
       "reasons": []
+    },
+    {
+      "at": "2026-11-17T14:31:11.160Z",
+      "decision": "kill",
+      "reasons": [
+        "1 visiteur(s) l'ont utilisée en 30 jours (minimum 20)"
+      ]
     }
   ],
   "spec": {
@@ -75,5 +82,11 @@
       "Cookies, publicité, analyse d'audience ou requêtes vers un autre site"
     ]
   },
-  "measuredSince": "2026-10-17T17:10:08.160Z"
+  "measuredSince": "2026-10-17T17:10:08.160Z",
+  "verdictJ30": {
+    "at": "2026-11-17T14:31:11.160Z",
+    "used": 1,
+    "decision": "kill"
+  },
+  "killedAt": "2026-11-17T14:31:11.160Z"
 }
