@@ -1,6 +1,6 @@
 {
   "slug": "calcul-carrelage-chutes",
-  "status": "live",
+  "status": "killed",
   "attempts": 1,
   "liveSince": "2026-10-19T10:53:43.249Z",
   "history": [
@@ -8,6 +8,13 @@
       "at": "2026-10-19T10:53:43.249Z",
       "decision": "go",
       "reasons": []
+    },
+    {
+      "at": "2026-11-18T14:07:40.580Z",
+      "decision": "kill",
+      "reasons": [
+        "0 visiteur(s) l'ont utilisée en 30 jours (minimum 20)"
+      ]
     }
   ],
   "spec": {
@@ -80,5 +87,11 @@
       "calcul des plinthes, des joints, de la colle ou des mortiers"
     ]
   },
-  "measuredSince": "2026-10-19T10:53:43.301Z"
+  "measuredSince": "2026-10-19T10:53:43.301Z",
+  "verdictJ30": {
+    "at": "2026-11-18T14:07:40.580Z",
+    "used": 0,
+    "decision": "kill"
+  },
+  "killedAt": "2026-11-18T14:07:40.580Z"
 }

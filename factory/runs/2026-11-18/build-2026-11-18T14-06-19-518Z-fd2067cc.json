@@ -1,0 +1,40 @@
+{
+  "runId": "build-2026-11-18T14-06-19-518Z-fd2067cc",
+  "atelier": "build",
+  "prompt": "dist/prompts/spec-calcul-terreau-bacs-pots.md",
+  "model": "sonnet",
+  "capUsd": 1.305,
+  "remainingBeforeUsd": 2.61,
+  "usd": 0.0663699,
+  "status": "ok",
+  "exitCode": 0,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "tools": [
+    "Bash",
+    "Edit",
+    "Read"
+  ],
+  "missingTools": [
+    "Write",
+    "Glob",
+    "Grep"
+  ],
+  "resultText": "J'ai écrit `spec.json` et `report.json` (statut `ok`) dans le dossier courant. Je n'ai rien exécuté ni testé : j'ai seulement écrit les deux fichiers.\n\nL'outil Bash a échoué avec une erreur de sandbox (`apply-seccomp`). Je ne l'ai pas contournée et j'ai créé les fichiers avec l'outil Edit. La même remarque figure dans le champ `summary` de `report.json`.\n\nLa spec contient 4 fonctions et 7 critères d'acceptation :\n- **Formes :** rectangulaire, rond ou évasé (tronc de cône), avec des dimensions en centimètres.\n- **Calcul :** volume en litres avec une marge de tassement en pourcentage, un nombre de contenants identiques, et un nombre de sacs arrondi à l'entier supérieur.\n- **Mémorisation :** la dernière saisie est gardée dans le `localStorage`.\n- **Critères AC-1 à AC-4 :** des cas chiffrés pour les trois formes (par exemple 100 × 20 × 20 cm avec un sac de 20 L donne exactement 2 sacs, pas 3).\n- **Critères AC-5 à AC-7 :** l'affichage des champs selon la forme, un message d'erreur en français pour une dimension vide, nulle ou négative, et la restauration de la saisie après rechargement.\n\nLe sujet n'est pas dans la liste des sujets interdits.",
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "success",
+  "numTurns": 5,
+  "permissionDenials": [],
+  "report": {
+    "status": "ok",
+    "summary": "spec.json écrit : 7 critères, 3 formes, marge, quantité, sacs. Bash indisponible (sandbox), fichiers créés via Edit.",
+    "blockers": []
+  },
+  "stderrTail": ""
+}

@@ -1,6 +1,6 @@
 {
   "slug": "calcul-allure-course",
-  "status": "live",
+  "status": "killed",
   "attempts": 1,
   "liveSince": "2026-10-17T17:56:10.770Z",
   "history": [
@@ -8,6 +8,13 @@
       "at": "2026-10-17T17:56:10.770Z",
       "decision": "go",
       "reasons": []
+    },
+    {
+      "at": "2026-11-18T14:07:40.580Z",
+      "decision": "kill",
+      "reasons": [
+        "0 visiteur(s) l'ont utilisée en 30 jours (minimum 20)"
+      ]
     }
   ],
   "spec": {
@@ -62,5 +69,11 @@
       "Prédiction de temps à partir d'un autre temps de course"
     ]
   },
-  "measuredSince": "2026-10-17T17:56:10.845Z"
+  "measuredSince": "2026-10-17T17:56:10.845Z",
+  "verdictJ30": {
+    "at": "2026-11-18T14:07:40.580Z",
+    "used": 0,
+    "decision": "kill"
+  },
+  "killedAt": "2026-11-18T14:07:40.580Z"
 }
