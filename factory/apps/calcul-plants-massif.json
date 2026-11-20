@@ -1,6 +1,6 @@
 {
   "slug": "calcul-plants-massif",
-  "status": "live",
+  "status": "killed",
   "attempts": 1,
   "liveSince": "2026-10-20T10:11:00.706Z",
   "history": [
@@ -8,6 +8,13 @@
       "at": "2026-10-20T10:11:00.706Z",
       "decision": "go",
       "reasons": []
+    },
+    {
+      "at": "2026-11-20T14:07:32.114Z",
+      "decision": "kill",
+      "reasons": [
+        "0 visiteur(s) l'ont utilisée en 30 jours (minimum 20)"
+      ]
     }
   ],
   "spec": {
@@ -56,5 +63,11 @@
       "Sauvegarde de l'historique des calculs"
     ]
   },
-  "measuredSince": "2026-10-20T10:11:00.751Z"
+  "measuredSince": "2026-10-20T10:11:00.751Z",
+  "verdictJ30": {
+    "at": "2026-11-20T14:07:32.114Z",
+    "used": 0,
+    "decision": "kill"
+  },
+  "killedAt": "2026-11-20T14:07:32.114Z"
 }

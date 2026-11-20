@@ -1,0 +1,15 @@
+{
+  "slug": "calcul-semences-gazon",
+  "status": "building",
+  "attempts": 1,
+  "liveSince": null,
+  "history": [
+    {
+      "at": "2026-11-20T14:07:32.058Z",
+      "decision": "retry",
+      "reasons": [
+        "atelier build : run failed"
+      ]
+    }
+  ]
+}
