@@ -1,6 +1,6 @@
 {
   "slug": "calcul-cartons-demenagement",
-  "status": "live",
+  "status": "killed",
   "attempts": 1,
   "liveSince": "2026-10-22T10:18:47.767Z",
   "history": [
@@ -8,6 +8,13 @@
       "at": "2026-10-22T10:18:47.767Z",
       "decision": "go",
       "reasons": []
+    },
+    {
+      "at": "2026-11-22T13:25:00.443Z",
+      "decision": "kill",
+      "reasons": [
+        "0 visiteur(s) l'ont utilisée en 30 jours (minimum 20)"
+      ]
     }
   ],
   "spec": {
@@ -56,5 +63,11 @@
       "Calcul hors hypothèses forfaitaires : 0,2 m³ par m², 0,5 m³ par pièce, 0,3 m³ par personne, carton de 0,06 m³, marge de 10 %"
     ]
   },
-  "measuredSince": "2026-10-22T10:18:47.825Z"
+  "measuredSince": "2026-10-22T10:18:47.825Z",
+  "verdictJ30": {
+    "at": "2026-11-22T13:25:00.443Z",
+    "used": 0,
+    "decision": "kill"
+  },
+  "killedAt": "2026-11-22T13:25:00.443Z"
 }
