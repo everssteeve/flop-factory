@@ -1,0 +1,36 @@
+{
+  "runId": "qualite-2026-11-24T15-56-19-461Z-aea25405",
+  "atelier": "qualite",
+  "prompt": "factory/prompts/guard-smoke.md",
+  "model": "haiku",
+  "capUsd": 0.435,
+  "remainingBeforeUsd": 0.87,
+  "usd": 0.0008118400000000001,
+  "status": "failed",
+  "exitCode": 1,
+  "guarded": true,
+  "plugins": [
+    "flop-factory-harness",
+    "cc-plugin-agents-md",
+    "cc-plugin-telemetry",
+    "cc-plugin-plugin-authoring"
+  ],
+  "tools": [
+    "Bash",
+    "Edit",
+    "Read"
+  ],
+  "missingTools": [
+    "Write",
+    "Glob",
+    "Grep"
+  ],
+  "resultText": null,
+  "pluginErrors": [],
+  "timedOut": false,
+  "subtype": "error_max_turns",
+  "numTurns": 4,
+  "permissionDenials": [],
+  "report": null,
+  "stderrTail": ""
+}
