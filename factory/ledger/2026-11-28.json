@@ -1,0 +1,29 @@
+{
+  "day": "2026-11-28",
+  "entries": [
+    {
+      "runId": "qualite-2026-11-28T14-16-17-358Z-404c3d69",
+      "atelier": "qualite",
+      "model": "haiku",
+      "usd": 0.0009218750000000001,
+      "status": "ok",
+      "at": "2026-11-28T14:16:17.358Z"
+    },
+    {
+      "runId": "build-2026-11-28T14-16-24-320Z-5e766e22",
+      "atelier": "build",
+      "model": "sonnet",
+      "usd": 0.0607207,
+      "status": "ok",
+      "at": "2026-11-28T14:16:24.320Z"
+    },
+    {
+      "runId": "build-2026-11-28T14-16-51-373Z-5a5d3383",
+      "atelier": "build",
+      "model": "sonnet",
+      "usd": 0.0228321,
+      "status": "failed",
+      "at": "2026-11-28T14:16:51.373Z"
+    }
+  ]
+}
